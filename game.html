@@ -13,14 +13,14 @@ button{margin:3px 0;padding:6px;border:none;border-radius:4px;background:#05204a
 button.active{background:#0a3a87;}
 #speed,#gear,#pedals,#status{margin-top:6px;font-size:14px;}
 .panelWindow{
-  position:absolute;top:10px;right:10px;width:320px;background:#111;border:1px solid #333;border-radius:6px;padding:10px;z-index:10;
+  position:absolute;top:10px;right:10px;width:200px;height:250px;background:#111;border:1px solid #333;border-radius:6px;padding:10px;z-index:10;
 }
-.panelWindow h3{margin:0 0 6px 0;font-size:16px;}
-.panelWindow textarea{width:100%;height:80px;background:#222;color:#fff;border:1px solid #444;padding:4px;border-radius:4px;font-size:14px;}
-.panelWindow button{width:100%;margin-top:4px;}
-.currentStop{font-size:20px;font-weight:bold;}
-.nextStops{font-size:14px;opacity:0.8;margin-top:4px;}
-.delay{font-size:14px;margin-top:4px;}
+.panelWindow h3{margin:0 0 6px 0;font-size:14px;}
+.panelWindow textarea{width:100%;height:60px;background:#222;color:#fff;border:1px solid #444;padding:4px;border-radius:4px;font-size:12px;}
+.panelWindow button{width:100%;margin-top:4px;font-size:12px;}
+.currentStop{font-size:16px;font-weight:bold;}
+.nextStops{font-size:12px;opacity:0.8;margin-top:4px;height:80px;overflow:auto;}
+.delay{font-size:12px;margin-top:4px;}
 .green{color:#00ff88;}
 .yellow{color:#ffd500;}
 .orange{color:#ff8c00;}
@@ -48,22 +48,23 @@ button.active{background:#0a3a87;}
 </div>
 
 <!-- Palubní PC okno -->
-<div class="panelWindow">
-  <h3>Palubní PC</h3>
+<div id="pcPanel" class="panelWindow">
+  <div style="display:flex;justify-content:space-between;align-items:center;">
+    <h3 style="margin:0;">Palubní PC</h3>
+    <button id="closePanel" style="font-size:14px;padding:2px 6px;">×</button>
+  </div>
   <div class="currentStop" id="currentStop">--</div>
   <div class="nextStops" id="nextStops"></div>
   <div class="delay" id="delayBox">Zpoždění: 0 min</div>
   <button onclick="prevStop()">⬅️ Předchozí</button>
   <button onclick="nextStop()">➡️ Další</button>
   <button onclick="playAnnouncement()">🔊 Hlášení</button>
-  <textarea id="inputStops" placeholder="Zastávka - čas (např: Náměstí - 08:00)"></textarea>
+  <textarea id="inputStops" placeholder="Zastávka - čas"></textarea>
   <button onclick="loadStops()">Načíst zastávky</button>
 </div>
 
-<!-- gong -->
 <audio id="gong" src="https://www.prazsketramvaje.cz/zvuky/praha-zastavky/ostatni/gong.mp3"></audio>
 
-<!-- Three.js -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r152/three.min.js"></script>
 <script>
 // ===== CLOCK =====
@@ -102,8 +103,25 @@ function nextStop(){if(index<stops.length-1){index++;renderStops();}}
 function prevStop(){if(index>0){index--;renderStops();}}
 function playAnnouncement(){const stop=stops[index]; if(!stop) return;
   const g=document.getElementById("gong"); g.currentTime=0; g.play();
-  setTimeout(()=>{const msg=new SpeechSynthesisUtterance("Příští zastávka "+stop.name); msg.lang="cs-CZ"; msg.pitch=1.2; msg.rate=0.9; speechSynthesis.speak(msg);},1000);
+  setTimeout(()=>{const msg=new SpeechSynthesisUtterance("Příští zastávka "+stop.name); msg.lang="cs-CZ"; msg.pitch=1.2; msg.rate=0.9; speechSynthesis.speak(msg);},500);
 }
+
+// ===== PANEL ZAVŘENÍ =====
+const pcPanel=document.getElementById('pcPanel');
+document.getElementById('closePanel').onclick=()=>{pcPanel.style.display='none';}
+
+// ===== POSOUVÁNÍ PANELU =====
+let isDragging=false, offsetX=0, offsetY=0;
+pcPanel.addEventListener('mousedown',e=>{
+  if(e.target.id==='closePanel') return;
+  isDragging=true; offsetX=e.offsetX; offsetY=e.offsetY;
+});
+window.addEventListener('mousemove',e=>{
+  if(!isDragging) return;
+  pcPanel.style.left=(e.clientX-offsetX)+'px';
+  pcPanel.style.top=(e.clientY-offsetY)+'px';
+});
+window.addEventListener('mouseup',()=>{isDragging=false;});
 
 // ===== 3D SCÉNA =====
 const scene=new THREE.Scene(); scene.background=new THREE.Color(0x111111);
@@ -113,17 +131,15 @@ const renderer=new THREE.WebGLRenderer({antialias:true}); renderer.setSize(windo
 
 // Autobus
 const busGroup=new THREE.Group(); scene.add(busGroup);
-const busGeometry=new THREE.BoxGeometry(3,1.5,7);
-const busMaterial=new THREE.MeshStandardMaterial({color:0x0044ff});
-const bus=new THREE.Mesh(busGeometry,busMaterial); bus.position.y=0.75; busGroup.add(bus);
+const bus=new THREE.Mesh(new THREE.BoxGeometry(3,1.5,7),new THREE.MeshStandardMaterial({color:0x0044ff}));
+bus.position.y=0.75; busGroup.add(bus);
 
 // volant
-const wheelGeom=new THREE.TorusGeometry(0.3,0.05,16,100);
-const wheelMat=new THREE.MeshStandardMaterial({color:0x222222});
-const wheel=new THREE.Mesh(wheelGeom,wheelMat); wheel.position.set(0,1.2,2.5); wheel.rotation.x=Math.PI/2; busGroup.add(wheel);
+const wheel=new THREE.Mesh(new THREE.TorusGeometry(0.3,0.05,16,100),new THREE.MeshStandardMaterial({color:0x222222}));
+wheel.position.set(0,1.2,2.5); wheel.rotation.x=Math.PI/2; busGroup.add(wheel);
 
 // dveře
-const door=new THREE.Mesh(new THREE.BoxGeometry(0.1,1.4,1.5), new THREE.MeshStandardMaterial({color:0xff8800}));
+const door=new THREE.Mesh(new THREE.BoxGeometry(0.1,1.4,1.5),new THREE.MeshStandardMaterial({color:0xff8800}));
 door.position.set(1.55,0.75,0); busGroup.add(door);
 
 // světla
@@ -131,9 +147,8 @@ const leftLight=new THREE.PointLight(0xffff00,0,10); leftLight.position.set(-1,1
 const rightLight=new THREE.PointLight(0xffff00,0,10); rightLight.position.set(1,1.2,3.5); scene.add(rightLight);
 
 // podlaha
-const floorGeom=new THREE.PlaneGeometry(50,50);
-const floorMat=new THREE.MeshStandardMaterial({color:0x222222});
-const floor=new THREE.Mesh(floorGeom,floorMat); floor.rotation.x=-Math.PI/2; scene.add(floor);
+const floor=new THREE.Mesh(new THREE.PlaneGeometry(50,50),new THREE.MeshStandardMaterial({color:0x222222}));
+floor.rotation.x=-Math.PI/2; scene.add(floor);
 
 // světla scény
 scene.add(new THREE.AmbientLight(0x555555));
@@ -149,7 +164,7 @@ document.getElementById("rightBlinker").onclick=()=>{rightBlink=!rightBlink; doc
 document.getElementById("doors").onclick=()=>{doorsOpen=!doorsOpen; door.position.x=doorsOpen?1.85:1.55; document.getElementById("doors").classList.toggle("active",doorsOpen);}
 document.getElementById("handbrake").onclick=()=>{handbrakeOn=!handbrakeOn; document.getElementById("handbrake").classList.toggle("active",handbrakeOn);}
 
-// pedály a převodovka simulace (simple)
+// pedály a převodovka simulace
 window.addEventListener('keydown',e=>{
   if(e.key=='ArrowUp') pedals.gas=Math.min(pedals.gas+5,100);
   if(e.key=='ArrowDown') pedals.brake=Math.min(pedals.brake+5,100);
@@ -165,20 +180,17 @@ let blinkTimer=0;
 function animate(){
   requestAnimationFrame(animate);
   blinkTimer++;
-  if(leftBlink && Math.floor(blinkTimer/30)%2==0) busMaterial.color.set(0xff0000);
-  else if(rightBlink && Math.floor(blinkTimer/30)%2==0) busMaterial.color.set(0x00ff00);
-  else busMaterial.color.set(0x0044ff);
+  if(leftBlink && Math.floor(blinkTimer/30)%2==0) bus.material.color.set(0xff0000);
+  else if(rightBlink && Math.floor(blinkTimer/30)%2==0) bus.material.color.set(0x00ff00);
+  else bus.material.color.set(0x0044ff);
   wheel.rotation.z=Math.sin(Date.now()*0.002)*0.3;
   
-  // rychlost simulace
   speed=Math.max(0,speed+0.01*(pedals.gas-pedals.brake));
   document.getElementById("speed").innerText="Rychlost: "+Math.round(speed)+" km/h";
   document.getElementById("gear").innerText="Převodovka: "+gear;
   document.getElementById("pedals").innerText="Pedály: brzda "+pedals.brake+"%, plyn "+pedals.gas+"%";
-  let st="Stav: ";
-  st+=headlightsOn?"Světla ":""; st+=doorsOpen?"Dveře ":""; st+=handbrakeOn?"R.Brzd ":"";
-  st+=leftBlink?"⬅️ ":""; st+=rightBlink?"➡️ ":"";
-  document.getElementById("status").innerText=st;
+  let st="Stav: "; st+=headlightsOn?"Světla ":""; st+=doorsOpen?"Dveře ":""; st+=handbrakeOn?"R.Brzd ":"";
+  st+=leftBlink?"⬅️ ":""; st+=rightBlink?"➡️ ":""; document.getElementById("status").innerText=st;
 
   renderer.render(scene,camera);
 }
