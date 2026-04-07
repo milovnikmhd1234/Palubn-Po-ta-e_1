@@ -3,13 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Synergy MHD – Okna</title>
+<title>Synergy MHD – Kompletní</title>
 <style>
+/* --- Základní styl --- */
 body{margin:0;font-family:sans-serif;background:#111;color:#eee;overflow-x:hidden;}
 header{background:#05204a;color:#fff;padding:12px;text-align:center}
 button{cursor:pointer;background:#05204a;color:#fff;padding:6px 12px;border:none;border-radius:4px;margin:4px}
 button:hover{background:#0a3a87}
-.window{position:absolute;top:50px;left:50px;width:90%;max-width:400px;background:#222;border:2px solid #0a3a87;border-radius:6px;box-shadow:0 0 10px #000;display:none;z-index:1000}
+.window{position:absolute;top:50px;left:50px;width:90%;max-width:450px;background:#222;border:2px solid #0a3a87;border-radius:6px;box-shadow:0 0 10px #000;display:none;z-index:1000}
 .window-header{background:#05204a;padding:6px 12px;color:#fff;font-weight:bold;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #0a3a87;cursor:move}
 .window-header span{cursor:pointer}
 .window-content{padding:12px}
@@ -19,11 +20,11 @@ li{margin:2px 0}
 </style>
 </head>
 <body>
-<header><h1>Synergy MHD – Okna</h1></header>
+<header><h1>Synergy MHD – Kompletní</h1></header>
 <main>
 <button onclick="openWindow('dpWindow')">Dopravce / Linka</button>
 <button onclick="openWindow('busWindow')">Autobus / Model</button>
-<button onclick="openWindow('ticketWindow')">Jízdenky / KartaŘ</button>
+<button onclick="openWindow('ticketWindow')">Prodej jízdenek</button>
 <button onclick="openWindow('panelWindow')">Panel zastávek</button>
 </main>
 
@@ -66,6 +67,7 @@ li{margin:2px 0}
       <option value="ISUZU">ISUZU</option>
       <option value="Renault/Irisbus">Renault/Irisbus</option>
       <option value="Škoda">Škoda</option>
+      <option value="Ikarus">Ikarus</option>
     </select>
     <label>Model:</label>
     <select id="busModel"></select>
@@ -75,15 +77,27 @@ li{margin:2px 0}
 
 <!-- Jízdenky -->
 <div class="window" id="ticketWindow">
-  <div class="window-header">Jízdenky <span onclick="closeWindow('ticketWindow')">×</span></div>
+  <div class="window-header">Prodej jízdenek <span onclick="closeWindow('ticketWindow')">×</span></div>
   <div class="window-content">
     <label>Typ jízdenky:</label>
     <select id="ticketType">
-      <option value="jid1">Jednorázová</option>
-      <option value="jid2">Denní</option>
-      <option value="jid3">Týdenní</option>
+      <option value="zdarma">Zdarma</option>
+      <option value="6-15">6–15 let</option>
+      <option value="15+">15+ let</option>
+      <option value="65+">65+ let</option>
+      <option value="ZTP">Osoba ZTP</option>
+      <option value="zavazadlo">Zavazadlo 3+kg</option>
+      <option value="pes">Pes</option>
+      <option value="ep">Dobití EP</option>
     </select>
-    <button onclick="saveTicket()">Uložit</button>
+    <label>Platba:</label>
+    <select id="paymentType">
+      <option value="BCK">BČK</option>
+      <option value="EP">EP</option>
+      <option value="Hotovost">Hotovost</option>
+    </select>
+    <button onclick="sellTicket()">Prodat</button>
+    <pre id="ticketLog" style="background:#222;color:#0f0;padding:8px;max-height:150px;overflow:auto;"></pre>
   </div>
 </div>
 
@@ -91,6 +105,8 @@ li{margin:2px 0}
 <div class="window" id="panelWindow">
   <div class="window-header">Panel zastávek <span onclick="closeWindow('panelWindow')">×</span></div>
   <div class="window-content">
+    <label>Vlastní zastávky (formát: Zastávka - HH:MM - *)</label>
+    <textarea id="stopsInput" placeholder="Napiš vlastní zastávky" style="width:100%;height:80px;background:#222;color:#eee;border:1px solid #555;border-radius:4px"></textarea>
     <ul id="stopsList"></ul>
     <button id="prevStop">Předchozí</button>
     <button id="nextStop">Další</button>
@@ -120,7 +136,8 @@ const busModels={
   "Solaris":["Urbino 8.6","Urbino 10","Urbino 12","Urbino 15","Urbino 18","Urbino 24"],
   "ISUZU":["NovoCiti","Novo Ultra"],
   "Renault/Irisbus":["Irisbus Agora","Irisbus Citelis/Citybus","Irisbus Crossway","Irisbus Arway/ Récréo"],
-  "Škoda":["33Tr SOR","Škoda-Solaris 24M"]
+  "Škoda":["33Tr SOR","Škoda-Solaris 24M"],
+  "Ikarus":["Ikarus 280","Ikarus 415","Ikarus EAG"]
 };
 const brandSelect=document.getElementById("busBrand");
 const modelSelect=document.getElementById("busModel");
@@ -139,31 +156,46 @@ function saveBus(){
 }
 
 // --- Jízdenky ---
-function saveTicket(){
+function sellTicket(){
   const ticket=document.getElementById("ticketType").value;
-  localStorage.setItem("synergyTicket", ticket);
-  alert("Jízdenka uložena!");
+  const payment=document.getElementById("paymentType").value;
+  const log=document.getElementById("ticketLog");
+  const record=`${new Date().toLocaleTimeString()} | ${ticket} | ${payment}\n`;
+  log.textContent+=record;
+  alert("Jízdenka prodána!");
 }
 
 // --- Panel zastávek ---
-const stops=[
-  {name:"Náměstí",time:"08:00",delay:0},
-  {name:"Hlavní nádraží*",time:"08:10",delay:2},
-  {name:"Konečná",time:"08:20",delay:-1}
-];
+let stops=[];
 let index=0;
 const list=document.getElementById("stopsList");
+
 function renderStops(){
   list.innerHTML="";
   stops.forEach((s,i)=>{
     const li=document.createElement("li");
-    li.textContent=`${s.name} - ${s.time} ${s.delay>0?'+':'-'}${Math.abs(s.delay)}min`;
+    li.textContent=`${s.name} - ${s.time} ${s.sign || ''}`;
     if(s.delay>0){li.style.color=s.delay<5?"yellow":s.delay<10?"orange":"red";}
     else if(s.delay<0) li.style.color="green";
     list.appendChild(li);
   });
 }
-renderStops();
+
+document.getElementById("stopsInput").addEventListener("change",()=>{
+  const lines=document.getElementById("stopsInput").value.split("\n");
+  stops=[];
+  lines.forEach(l=>{
+    if(l.trim()==='') return;
+    const parts=l.split("-");
+    const name=parts[0].trim();
+    const time=parts[1]?.trim()||"";
+    const sign=parts[2]?.trim()||"";
+    stops.push({name,time,sign,delay:0});
+  });
+  index=0;
+  renderStops();
+});
+
 document.getElementById("nextStop").addEventListener("click",()=>{
   if(index<stops.length-1) index++;
   alert("Další zastávka: "+stops[index].name);
@@ -173,9 +205,9 @@ document.getElementById("prevStop").addEventListener("click",()=>{
   alert("Předchozí zastávka: "+stops[index].name);
 });
 document.getElementById("playGong").addEventListener("click",()=>{
+  if(stops[index]) alert("Zastávka: "+stops[index].name);
   const g=document.getElementById("gong");
   g.currentTime=0; g.play();
-  alert("Zastávka: "+stops[index].name);
 });
 </script>
 </body>
