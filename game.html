@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Synergy 2D Výjezd – Kategorizované autobusy</title>
+<title>Synergy 2D Upgrade</title>
 <style>
 body {margin:0;font-family:sans-serif;background:#0a1b2c;color:#fff;}
 #header {background:#05204a;padding:10px;display:flex;align-items:center;}
@@ -24,7 +24,7 @@ button {cursor:pointer;border-radius:3px;border:none;padding:5px;background:#0f9
 <body>
 
 <div id="header">
-<h1>Synergy 2D Výjezd</h1>
+<h1>Synergy 2D Upgrade</h1>
 <div id="time"></div>
 </div>
 
@@ -33,6 +33,12 @@ button {cursor:pointer;border-radius:3px;border:none;padding:5px;background:#0f9
 </div>
 
 <div id="panel">
+
+<h3>Přihlášení (volitelné)</h3>
+Email:<input type="email" id="login-email" placeholder="Email">
+PIN:<input type="password" id="login-pin" placeholder="PIN">
+<button id="login-btn">Přihlásit</button>
+
 <h3>Výběr linky</h3>
 <select id="line-select">
 <option value="">-- Vyber linku --</option>
@@ -41,7 +47,7 @@ button {cursor:pointer;border-radius:3px;border:none;padding:5px;background:#0f9
 <option value="2">2: Tesco → Divadlo → ZOO → Restaurace</option>
 </select>
 
-<h3>Výběr autobusu podle značky</h3>
+<h3>Výběr autobusu</h3>
 <div id="bus-select-container"></div>
 
 <button id="start-btn">Spustit výjezd</button>
@@ -54,8 +60,8 @@ button {cursor:pointer;border-radius:3px;border:none;padding:5px;background:#0f9
 <button class="panel-btn" id="handbrake-btn">Ruční brzda</button>
 <button class="panel-btn" id="gong">🔔 Gong</button>
 
-<h3>Ekonomika</h3>
-<div id="economy">Nafta:0 | CNG:0 | Údržba:0 | Autobusy:0</div>
+<h3>Ekonomika (€)</h3>
+<div id="economy">0</div>
 
 <h3>Zastávky</h3>
 <div id="stop-panel" class="stop-list"></div>
@@ -90,7 +96,7 @@ Platba:
 function updateTime(){let d=new Date();document.getElementById('time').textContent=d.toLocaleTimeString();}
 setInterval(updateTime,1000);updateTime();
 
-// --- Autobusy s kategoriemi a barvami ---
+// --- Autobusy ---
 const buses=[
 {brand:"SOR",models:["BN 8.5","BNG 12","NB 12","NB 18","NS 12","NS 18","EBN 8","EBN 9.5","EBN 10.5","C 9.5","C 12","CN 8.5","CN 9.5","CN 10.5","CN 12","LH 9.5","LH 10.5","LH 12","CNG12"],color:"#f00"},
 {brand:"IVECO/Irisbus/Karosa",models:["B 731","B 732","B 741","B 831","B 932","C 734","C 935","C 954","LC 735","LC 937","LC 956","Urbanway 10.5M","Urbanway 12M","Crossway","Citelis 12M","Citelis 18M","Crossway LE","Karosa ŠM11","Iveco Streetway"],color:"#0f0"},
@@ -101,24 +107,26 @@ const buses=[
 {brand:"Ikarus",models:["260"],color:"#aaa"}
 ];
 
-const busContainer=document.getElementById('bus-select-container');
-buses.forEach(b=>{
-  const header=document.createElement('div');
-  header.classList.add('brand-header');
-  header.textContent=b.brand;
-  busContainer.appendChild(header);
-  b.models.forEach(m=>{
-    const btn=document.createElement('button');
-    btn.textContent=m;
-    btn.style.background=b.color;
-    btn.style.color="#000";
-    btn.classList.add('panel-btn');
-    btn.addEventListener('click',()=>{selectedBus=m;alert("Vybran autobus: "+m);});
-    busContainer.appendChild(btn);
-  });
-});
+let unlockedBuses=JSON.parse(localStorage.getItem("unlockedBuses")||'["SOR CNG12"]');
 
+const busContainer=document.getElementById('bus-select-container');
 let selectedBus="";
+function refreshBusButtons(){
+  busContainer.innerHTML='';
+  buses.forEach(b=>{
+    const header=document.createElement('div'); header.classList.add('brand-header'); header.textContent=b.brand;
+    busContainer.appendChild(header);
+    b.models.forEach(m=>{
+      const btn=document.createElement('button');
+      btn.textContent=m+(unlockedBuses.includes(m)?"":" 💰");
+      btn.style.background=b.color; btn.style.color="#000"; btn.classList.add('panel-btn');
+      btn.disabled=!unlockedBuses.includes(m);
+      btn.addEventListener('click',()=>{selectedBus=m;alert("Vybran autobus: "+m);});
+      busContainer.appendChild(btn);
+    });
+  });
+}
+refreshBusButtons();
 
 // --- Linky ---
 const lines={
@@ -128,6 +136,7 @@ const lines={
 };
 let currentStop=0;
 let currentLine=[];
+let balance=0;
 
 // --- Start výjezdu ---
 document.getElementById('start-btn').addEventListener('click',()=>{
@@ -136,8 +145,10 @@ document.getElementById('start-btn').addEventListener('click',()=>{
   if(!selectedBus){alert("Vyber autobus!"); return;}
   currentLine=lines[lineId];
   currentStop=0;
+  balance=0;
   updateStopsPanel();
   animateBus();
+  updateEconomy();
 });
 
 // --- Zastávky ---
@@ -155,13 +166,19 @@ function updateStopsPanel(){
 // --- Gong + hlášení ---
 document.getElementById('gong').addEventListener('click',()=>{
   if(currentLine.length===0) return;
+  const current=currentStop;
   const nextIndex=(currentStop+1)%currentLine.length;
   const nextStop=currentLine[nextIndex].name;
-  const utter=new SpeechSynthesisUtterance(`Příští zastávka: ${nextStop}`);
+  const utter=new SpeechSynthesisUtterance(`Aktuální zastávka: ${currentLine[current].name}. Příští zastávka: ${nextStop}`);
   utter.lang='cs-CZ';
   speechSynthesis.speak(utter);
   document.getElementById('gong-audio').play();
-  utter.onend=()=>{currentStop=nextIndex; updateStopsPanel();}
+  utter.onend=()=>{
+    currentStop=nextIndex;
+    balance+=20; // ekonomika
+    updateStopsPanel();
+    updateEconomy();
+  };
 });
 
 // --- Palubní panely ---
@@ -172,10 +189,7 @@ buttons.forEach(b=>{
 });
 
 // --- Ekonomika ---
-let economy=document.getElementById('economy');
-let resources={nafta:0,cng:0,udrzba:0,autobusy:0};
-function updateEconomy(){economy.textContent=`Nafta:${resources.nafta} | CNG:${resources.cng} | Údržba:${resources.udrzba} | Autobusy:${resources.autobusy}`;}
-setInterval(updateEconomy,3000);
+function updateEconomy(){document.getElementById('economy').textContent=balance;}
 
 // --- Jízdenky ---
 document.getElementById('sell-ticket').addEventListener('click',()=>{
@@ -186,7 +200,6 @@ document.getElementById('sell-ticket').addEventListener('click',()=>{
 
 // --- Autobusy vizuálně ---
 const canvasContainer=document.getElementById('canvas-container');
-let busDivs=[];
 function animateBus(){
   canvasContainer.innerHTML='<div id="road"></div>';
   const busDiv=document.createElement('div');
@@ -202,6 +215,15 @@ function animateBus(){
     busDiv.style.left=pos+'px';
   },30);
 }
+
+// --- Přihlášení (localStorage) ---
+document.getElementById('login-btn').addEventListener('click',()=>{
+  const email=document.getElementById('login-email').value;
+  const pin=document.getElementById('login-pin').value;
+  if(!email || !pin){alert("Vyplň email a PIN!");return;}
+  localStorage.setItem("synergy-login",JSON.stringify({email,pin}));
+  alert("Přihlášeno jako "+email);
+});
 </script>
 </body>
 </html>
