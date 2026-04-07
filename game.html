@@ -3,199 +3,278 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Synergy Full Simulator</title>
+<title>Synergy MHD</title>
 <style>
-body{margin:0;font-family:Arial;background:#0b0f1a;color:#fff;overflow:hidden;}
-header{background:#02142e;padding:10px;display:flex;justify-content:space-between;font-size:18px;}
-#clock{font-weight:bold;}
-#ui{position:absolute;top:10px;left:10px;width:220px;z-index:10;display:flex;flex-direction:column;}
-button{margin:3px 0;padding:6px;border:none;border-radius:4px;background:#05204a;color:#fff;cursor:pointer;font-size:14px;}
-button.active{background:#0a3a87;}
-#speed,#gear,#pedals,#status{margin-top:6px;font-size:14px;}
-.panelWindow{
-  position:absolute;top:10px;right:10px;width:200px;height:250px;background:#111;border:1px solid #333;border-radius:6px;padding:10px;z-index:10;
-}
-.panelWindow h3{margin:0 0 6px 0;font-size:14px;}
-.panelWindow textarea{width:100%;height:60px;background:#222;color:#fff;border:1px solid #444;padding:4px;border-radius:4px;font-size:12px;}
-.panelWindow button{width:100%;margin-top:4px;font-size:12px;}
-.currentStop{font-size:16px;font-weight:bold;}
-.nextStops{font-size:12px;opacity:0.8;margin-top:4px;height:80px;overflow:auto;}
-.delay{font-size:12px;margin-top:4px;}
-.green{color:#00ff88;}
-.yellow{color:#ffd500;}
-.orange{color:#ff8c00;}
-.red{color:#ff3b3b;}
+/* --- Základní Synergy design --- */
+body{margin:0;font-family:sans-serif;background:#f4f4f7;color:#fff}
+header{background:#05204a;color:#fff;padding:12px;display:flex;align-items:center;position:fixed;width:100%;z-index:100}
+#hamburger{font-size:26px;cursor:pointer;margin-right:12px}
+h1{font-size:18px;margin:0}
+#time{margin-left:auto;font-size:16px}
+nav{position:fixed;left:-280px;top:0;width:280px;height:100vh;background:#08306b;color:#fff;transition:left 0.3s;overflow:auto;padding-top:50px;z-index:99}
+nav.open{left:0}
+nav a{display:block;padding:12px;color:#fff;text-decoration:none;border-bottom:1px solid #0a3a87}
+nav a:hover{background:#0a3a87}
+main{padding:16px;margin-top:50px}
+input,select,button{width:100%;margin:6px 0;padding:8px;font-size:15px;border:1px solid #ccc;border-radius:4px}
+button{background:#05204a;color:#fff;cursor:pointer}
+button:hover{background:#0a3a87}
+
+/* --- Zpoždění --- */
+.delay{padding:4px;margin:6px 0;width:fit-content;border-radius:4px}
+.green{background:#4CAF50;color:#fff}
+.yellow{background:#FFEB3B;color:#000}
+.orange{background:#FF9800;color:#fff}
+.red{background:#F44336;color:#fff}
+
+/* --- 3D canvas --- */
+#busCanvas{width:100%;height:300px;background:#111;border-radius:8px;display:block;margin:12px 0}
 </style>
 </head>
 <body>
 
 <header>
-  <div>Synergy Simulator</div>
-  <div id="clock"></div>
+<span id="hamburger">☰</span>
+<h1>Synergy MHD</h1>
+<div id="time"></div>
 </header>
 
-<!-- UI ovládací panel -->
-<div id="ui">
-  <button id="headlights">Světla</button>
-  <button id="leftBlinker">Blinkr ⬅️</button>
-  <button id="rightBlinker">Blinkr ➡️</button>
-  <button id="doors">Dveře</button>
-  <button id="handbrake">Ruční brzda</button>
-  <div id="gear">Převodovka: N</div>
-  <div id="pedals">Pedály: brzda 0%, plyn 0%</div>
-  <div id="speed">Rychlost: 0 km/h</div>
-  <div id="status">Stav: --</div>
-</div>
+<nav id="sidebar">
+<a href="#" id="closeNav">Zavřít menu</a>
+<a href="#stopsSection">Jízdní řád</a>
+<a href="#busSection">Autobusy</a>
+<a href="#ticketsSection">Jízdenky</a>
+<a href="#adminSection">Admin</a>
+</nav>
 
-<!-- Palubní PC okno -->
-<div id="pcPanel" class="panelWindow">
-  <div style="display:flex;justify-content:space-between;align-items:center;">
-    <h3 style="margin:0;">Palubní PC</h3>
-    <button id="closePanel" style="font-size:14px;padding:2px 6px;">×</button>
-  </div>
-  <div class="currentStop" id="currentStop">--</div>
-  <div class="nextStops" id="nextStops"></div>
-  <div class="delay" id="delayBox">Zpoždění: 0 min</div>
-  <button onclick="prevStop()">⬅️ Předchozí</button>
-  <button onclick="nextStop()">➡️ Další</button>
-  <button onclick="playAnnouncement()">🔊 Hlášení</button>
-  <textarea id="inputStops" placeholder="Zastávka - čas"></textarea>
-  <button onclick="loadStops()">Načíst zastávky</button>
-</div>
+<main>
+
+<section id="stopsSection">
+<h2>Jízdní řád</h2>
+<div>Město / Dopravce:
+<select id="dpSelect">
+  <option value="PID">PID</option>
+  <option value="DPP">DPP</option>
+  <option value="DPMB">DPMB</option>
+  <option value="DPO">DPO</option>
+  <option value="MDPO">MDPO</option>
+  <option value="PMDP">PMDP</option>
+  <option value="SADL">SAD Lučenec</option>
+  <option value="ZGROUP">Z-Group Bus</option>
+  <option value="ARRC">Arriva Čechy</option>
+  <option value="ARRM">Arriva Morava a Slezsko</option>
+  <option value="TRANZDEV">TRANZDEV</option>
+  <option value="BRATISLAVA">Bratislava</option>
+</select></div>
+
+<div>Linka: <input type="text" id="lineInput" placeholder="Zadej linku"></div>
+<div>Spoje: <input type="text" id="tripInput" placeholder="Zadej spoj"></div>
+
+<button id="loadStopsBtn">Načíst zastávky</button>
+
+<div id="currentStop" style="font-size:20px;margin:8px 0">–</div>
+<div id="nextStops" style="font-size:14px;color:#ccc"></div>
+<div id="delayBox" class="delay">Zpoždění: 0 min</div>
+</section>
+
+<section id="busSection">
+<h2>Autobusy</h2>
+<select id="busBrand">
+  <option value="SOR">SOR</option>
+  <option value="IVECO">IVECO / Irisbus / Karosa</option>
+  <option value="SOLARIS">Solaris</option>
+  <option value="ISUZU">ISUZU</option>
+  <option value="RENAULT">Renault / Irisbus</option>
+  <option value="SKODA">Škoda</option>
+  <option value="IKARUS">Ikarus</option>
+</select>
+
+<select id="busModel">
+  <option value="">Vyber model</option>
+</select>
+
+<canvas id="busCanvas"></canvas>
+</section>
+
+<section id="ticketsSection">
+<h2>Jízdenky</h2>
+<select id="ticketType">
+  <option value="free">Zdarma</option>
+  <option value="6-15">Děti 6–15</option>
+  <option value="15+">Dospělí</option>
+  <option value="65+">65+</option>
+  <option value="ZTP">Osoba ZTP</option>
+  <option value="baggage">Zavazadlo 3+kg</option>
+  <option value="pet">Pes</option>
+  <option value="ep">Dobití EP</option>
+</select>
+<select id="paymentType">
+  <option value="BCK">BČK</option>
+  <option value="EP">EP</option>
+  <option value="cash">Hotovost</option>
+</select>
+<button id="sellTicketBtn">Prodat jízdenku</button>
+<div id="ticketLog" style="margin-top:8px;background:#222;padding:8px;border-radius:4px;height:100px;overflow:auto"></div>
+</section>
+
+<section id="adminSection">
+<h2>Admin panel</h2>
+<div>Uživatel: <input type="text" id="adminUser"></div>
+<div>Heslo: <input type="password" id="adminPass"></div>
+<button id="adminLoginBtn">Přihlásit admin</button>
+<div id="adminPanelLog" style="margin-top:8px;"></div>
+</section>
 
 <audio id="gong" src="https://www.prazsketramvaje.cz/zvuky/praha-zastavky/ostatni/gong.mp3"></audio>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r152/three.min.js"></script>
 <script>
-// ===== CLOCK =====
-function updateClock(){
-  const d=new Date();
-  document.getElementById("clock").innerText=
-    d.getHours().toString().padStart(2,"0")+":"+
-    d.getMinutes().toString().padStart(2,"0")+":"+
-    d.getSeconds().toString().padStart(2,"0");
-}
-setInterval(updateClock,1000);
+// --- SIDEBAR ---
+const hamburger=document.getElementById('hamburger');
+const sidebar=document.getElementById('sidebar');
+const closeNav=document.getElementById('closeNav');
+hamburger.addEventListener('click',()=>{sidebar.classList.add('open')});
+closeNav.addEventListener('click',()=>{sidebar.classList.remove('open')});
 
-// ===== STOPS =====
-let stops=[]; let index=0;
-function loadStops(){
-  const lines=document.getElementById("inputStops").value.split("\n");
-  stops=[];
-  lines.forEach(l=>{
-    if(!l.trim()) return;
-    const parts=l.split("-");
-    stops.push({name:parts[0].trim(), time:parts[1]?.trim()||"00:00", delay: Math.floor(Math.random()*11)-5});
-  });
-  index=0; renderStops();
+// --- ČAS ---
+function updateTime(){
+  const d=new Date(),h=d.getHours(),m=d.getMinutes(),s=d.getSeconds();
+  document.getElementById('time').textContent=`${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
 }
-function renderStops(){
+setInterval(updateTime,1000);
+updateTime();
+
+// --- DATA ---
+let stops=[],index=0;
+const busModels={
+  "SOR":["BN 8.5","BNG 12","NB 12","NB 18","NS 12","NS 18","EBN 8","EBN 9.5","EBN 10.5","C 9.5","C 12","CN 8.5","CN 9.5","CN 10.5","CN 12","LH 9.5","LH 10.5","LH 12"],
+  "IVECO":["Urbanway 10.5M","Urbanway 12M","Crossway"],
+  "IRISBUS":["Citelis 12M","Citelis 18M","Crossway LE"],
+  "KAROSA":["B 731","B 732","B 741","B 831","B 932","C 734","C 935","C 954","LC 735","LC 937","LC 956"],
+  "SOLARIS":["Urbino 8.6","Urbino 10","Urbino 12","Urbino 15","Urbino 18","Urbino 24"],
+  "ISUZU":["NovoCiti","Novo Ultra"],
+  "RENAULT":["Irisbus Agora","Irisbus Citelis","Irisbus Crossway","Irisbus Arway","Irisbus Récréo"],
+  "SKODA":["33Tr SOR","Škoda-Solaris 24M"],
+  "IKARUS":["IK 280","IK 260","IK 250"]
+};
+
+// --- NAČTENÍ ZASTÁVEK ---
+document.getElementById('loadStopsBtn').addEventListener('click',()=>{
+  const line=document.getElementById('lineInput').value;
+  if(!line) return alert("Zadej linku");
+  // Simulace zastávek
+  stops=[
+    {name:"Hlavní nádraží",time:"12:00",delay:0},
+    {name:"Masarykovo nádraží*",time:"12:05",delay:1},
+    {name:"Náměstí Svobody",time:"12:10",delay:-1},
+    {name:"Zastávka Centrum",time:"12:15",delay:3},
+    {name:"Konečná",time:"12:20",delay:0}
+  ];
+  index=0;
+  render(true);
+  startAutoAdvance(5000);
+});
+
+// --- POSUN ZASTÁVEK ---
+let autoAdvanceInterval;
+function startAutoAdvance(interval=5000){
+  if(autoAdvanceInterval) clearInterval(autoAdvanceInterval);
+  autoAdvanceInterval=setInterval(()=>{
+    nextStop();
+    playAnnouncement();
+  },interval);
+}
+function nextStop(){
+  if(index<stops.length-1){index++;render(true);}
+}
+function prevStop(){
+  if(index>0){index--;render(true);}
+}
+function render(animate=false){
   if(!stops[index]) return;
-  document.getElementById("currentStop").innerText=stops[index].name+" ("+stops[index].time+")";
-  let next="";
-  for(let i=index+1;i<stops.length;i++) next+=stops[i].name+" ("+stops[i].time+")\n";
-  document.getElementById("nextStops").innerText=next;
-  const d=stops[index].delay; const box=document.getElementById("delayBox");
-  box.innerText="Zpoždění: "+(d>=0?"+":"")+d+" min";
-  box.className="delay"; if(d<0) box.classList.add("green"); else if(d<=2) box.classList.add("yellow"); else if(d<=5) box.classList.add("orange"); else box.classList.add("red");
+  const cur=document.getElementById("currentStop");
+  const next=document.getElementById("nextStops");
+  const delayBox=document.getElementById("delayBox");
+  if(animate){
+    cur.style.transform="translateY(-50px)";
+    cur.style.opacity="0";
+    setTimeout(()=>{
+      cur.innerText=stops[index].name+" ("+stops[index].time+")";
+      cur.style.transform="translateY(0px)";
+      cur.style.opacity="1";
+    },200);
+  }else cur.innerText=stops[index].name+" ("+stops[index].time+")";
+
+  next.innerHTML="";
+  for(let i=index+1;i<stops.length;i++){
+    let name=stops[i].name;
+    if(name.endsWith("*")) name+=" (Zastávka na znamení)";
+    next.innerHTML+=name+" ("+stops[i].time+")<br>";
+  }
+
+  const d=stops[index].delay;
+  delayBox.innerText="Zpoždění: "+(d>=0?"+":"")+d+" min";
+  delayBox.className="delay";
+  if(d<0) delayBox.classList.add("green");
+  else if(d<=2) delayBox.classList.add("yellow");
+  else if(d<=5) delayBox.classList.add("orange");
+  else delayBox.classList.add("red");
 }
-function nextStop(){if(index<stops.length-1){index++;renderStops();}}
-function prevStop(){if(index>0){index--;renderStops();}}
-function playAnnouncement(){const stop=stops[index]; if(!stop) return;
-  const g=document.getElementById("gong"); g.currentTime=0; g.play();
-  setTimeout(()=>{const msg=new SpeechSynthesisUtterance("Příští zastávka "+stop.name); msg.lang="cs-CZ"; msg.pitch=1.2; msg.rate=0.9; speechSynthesis.speak(msg);},500);
+
+// --- HLÁŠENÍ ---
+function playAnnouncement(){
+  const stop=stops[index];
+  if(!stop) return;
+  const g=document.getElementById("gong");
+  g.currentTime=0; g.play();
+  setTimeout(()=>{
+    const msg=new SpeechSynthesisUtterance("Příští zastávka "+stop.name);
+    msg.lang="cs-CZ"; msg.pitch=1.2; msg.rate=0.9;
+    speechSynthesis.speak(msg);
+  },800);
 }
 
-// ===== PANEL ZAVŘENÍ =====
-const pcPanel=document.getElementById('pcPanel');
-document.getElementById('closePanel').onclick=()=>{pcPanel.style.display='none';}
-
-// ===== POSOUVÁNÍ PANELU =====
-let isDragging=false, offsetX=0, offsetY=0;
-pcPanel.addEventListener('mousedown',e=>{
-  if(e.target.id==='closePanel') return;
-  isDragging=true; offsetX=e.offsetX; offsetY=e.offsetY;
-});
-window.addEventListener('mousemove',e=>{
-  if(!isDragging) return;
-  pcPanel.style.left=(e.clientX-offsetX)+'px';
-  pcPanel.style.top=(e.clientY-offsetY)+'px';
-});
-window.addEventListener('mouseup',()=>{isDragging=false;});
-
-// ===== 3D SCÉNA =====
-const scene=new THREE.Scene(); scene.background=new THREE.Color(0x111111);
-const camera=new THREE.PerspectiveCamera(60,window.innerWidth/window.innerHeight,0.1,1000);
-camera.position.set(0,2,5);
-const renderer=new THREE.WebGLRenderer({antialias:true}); renderer.setSize(window.innerWidth,window.innerHeight); document.body.appendChild(renderer.domElement);
-
-// Autobus
-const busGroup=new THREE.Group(); scene.add(busGroup);
-const bus=new THREE.Mesh(new THREE.BoxGeometry(3,1.5,7),new THREE.MeshStandardMaterial({color:0x0044ff}));
-bus.position.y=0.75; busGroup.add(bus);
-
-// volant
-const wheel=new THREE.Mesh(new THREE.TorusGeometry(0.3,0.05,16,100),new THREE.MeshStandardMaterial({color:0x222222}));
-wheel.position.set(0,1.2,2.5); wheel.rotation.x=Math.PI/2; busGroup.add(wheel);
-
-// dveře
-const door=new THREE.Mesh(new THREE.BoxGeometry(0.1,1.4,1.5),new THREE.MeshStandardMaterial({color:0xff8800}));
-door.position.set(1.55,0.75,0); busGroup.add(door);
-
-// světla
-const leftLight=new THREE.PointLight(0xffff00,0,10); leftLight.position.set(-1,1.2,3.5); scene.add(leftLight);
-const rightLight=new THREE.PointLight(0xffff00,0,10); rightLight.position.set(1,1.2,3.5); scene.add(rightLight);
-
-// podlaha
-const floor=new THREE.Mesh(new THREE.PlaneGeometry(50,50),new THREE.MeshStandardMaterial({color:0x222222}));
-floor.rotation.x=-Math.PI/2; scene.add(floor);
-
-// světla scény
-scene.add(new THREE.AmbientLight(0x555555));
-const dirLight=new THREE.DirectionalLight(0xffffff,0.5); dirLight.position.set(5,10,5); scene.add(dirLight);
-
-// ovládání
-let speed=0,leftBlink=false,rightBlink=false,doorsOpen=false,headlightsOn=false,handbrakeOn=false,gear='N';
-const pedals={gas:0,brake:0};
-
-document.getElementById("headlights").onclick=()=>{headlightsOn=!headlightsOn; leftLight.intensity=rightLight.intensity=headlightsOn?1:0; document.getElementById("headlights").classList.toggle("active",headlightsOn);}
-document.getElementById("leftBlinker").onclick=()=>{leftBlink=!leftBlink; document.getElementById("leftBlinker").classList.toggle("active",leftBlink);}
-document.getElementById("rightBlinker").onclick=()=>{rightBlink=!rightBlink; document.getElementById("rightBlinker").classList.toggle("active",rightBlink);}
-document.getElementById("doors").onclick=()=>{doorsOpen=!doorsOpen; door.position.x=doorsOpen?1.85:1.55; document.getElementById("doors").classList.toggle("active",doorsOpen);}
-document.getElementById("handbrake").onclick=()=>{handbrakeOn=!handbrakeOn; document.getElementById("handbrake").classList.toggle("active",handbrakeOn);}
-
-// pedály a převodovka simulace
-window.addEventListener('keydown',e=>{
-  if(e.key=='ArrowUp') pedals.gas=Math.min(pedals.gas+5,100);
-  if(e.key=='ArrowDown') pedals.brake=Math.min(pedals.brake+5,100);
-  if(e.key=='d') gear='D'; if(e.key=='n') gear='N'; if(e.key=='r') gear='R';
-});
-window.addEventListener('keyup',e=>{
-  if(e.key=='ArrowUp') pedals.gas=0;
-  if(e.key=='ArrowDown') pedals.brake=0;
-});
-
-// animace
-let blinkTimer=0;
-function animate(){
-  requestAnimationFrame(animate);
-  blinkTimer++;
-  if(leftBlink && Math.floor(blinkTimer/30)%2==0) bus.material.color.set(0xff0000);
-  else if(rightBlink && Math.floor(blinkTimer/30)%2==0) bus.material.color.set(0x00ff00);
-  else bus.material.color.set(0x0044ff);
-  wheel.rotation.z=Math.sin(Date.now()*0.002)*0.3;
-  
-  speed=Math.max(0,speed+0.01*(pedals.gas-pedals.brake));
-  document.getElementById("speed").innerText="Rychlost: "+Math.round(speed)+" km/h";
-  document.getElementById("gear").innerText="Převodovka: "+gear;
-  document.getElementById("pedals").innerText="Pedály: brzda "+pedals.brake+"%, plyn "+pedals.gas+"%";
-  let st="Stav: "; st+=headlightsOn?"Světla ":""; st+=doorsOpen?"Dveře ":""; st+=handbrakeOn?"R.Brzd ":"";
-  st+=leftBlink?"⬅️ ":""; st+=rightBlink?"➡️ ":""; document.getElementById("status").innerText=st;
-
-  renderer.render(scene,camera);
-}
+// --- AUTOBUSY 3D ---
+let scene=new THREE.Scene();
+let camera=new THREE.PerspectiveCamera(75,window.innerWidth/300,0.1,1000);
+let renderer=new THREE.WebGLRenderer({canvas:document.getElementById("busCanvas"),antialias:true});
+renderer.setSize(window.innerWidth,300);
+let geometry=new THREE.BoxGeometry(2,1,5);
+let material=new THREE.MeshBasicMaterial({color:0xff0000});
+let bus=new THREE.Mesh(geometry,material);
+scene.add(bus);
+camera.position.z=10;
+function animate(){requestAnimationFrame(animate);bus.rotation.y+=0.01;renderer.render(scene,camera);}
 animate();
-</script>
+document.getElementById("busBrand").addEventListener('change',updateBusModels);
+function updateBusModels(){
+  const brand=document.getElementById("busBrand").value;
+  const modelSelect=document.getElementById("busModel");
+  modelSelect.innerHTML="";
+  if(busModels[brand]){
+    busModels[brand].forEach(m=>{
+      const opt=document.createElement("option");
+      opt.value=m; opt.text=m; modelSelect.appendChild(opt);
+    });
+  }
+}
 
+// --- JÍZDENKY ---
+document.getElementById('sellTicketBtn').addEventListener('click',()=>{
+  const type=document.getElementById('ticketType').value;
+  const pay=document.getElementById('paymentType').value;
+  const log=document.getElementById('ticketLog');
+  log.innerHTML+=`Prodaná jízdenka: ${type}, platba: ${pay}<br>`;
+});
+
+// --- ADMIN ---
+document.getElementById('adminLoginBtn').addEventListener('click',()=>{
+  const u=document.getElementById('adminUser').value;
+  const p=document.getElementById('adminPass').value;
+  const log=document.getElementById('adminPanelLog');
+  if(u==="admin" && p==="K3508O"){log.innerHTML="✅ Přihlášen admin";} 
+  else{log.innerHTML="❌ Špatné přihlašovací údaje";}
+});
+</script>
 </body>
 </html>
