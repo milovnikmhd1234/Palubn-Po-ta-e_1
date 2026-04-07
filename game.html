@@ -108,20 +108,28 @@ const buses=[
 ];
 
 let unlockedBuses=JSON.parse(localStorage.getItem("unlockedBuses")||'["SOR CNG12"]');
+let selectedBus="";
 
 const busContainer=document.getElementById('bus-select-container');
-let selectedBus="";
 function refreshBusButtons(){
   busContainer.innerHTML='';
   buses.forEach(b=>{
-    const header=document.createElement('div'); header.classList.add('brand-header'); header.textContent=b.brand;
+    const header=document.createElement('div'); 
+    header.classList.add('brand-header'); 
+    header.textContent=b.brand;
     busContainer.appendChild(header);
     b.models.forEach(m=>{
       const btn=document.createElement('button');
       btn.textContent=m+(unlockedBuses.includes(m)?"":" 💰");
       btn.style.background=b.color; btn.style.color="#000"; btn.classList.add('panel-btn');
-      btn.disabled=!unlockedBuses.includes(m);
-      btn.addEventListener('click',()=>{selectedBus=m;alert("Vybran autobus: "+m);});
+      btn.addEventListener('click',()=>{
+        selectedBus=m;
+        if(!unlockedBuses.includes(m)){
+          alert("Tento autobus je k zakoupení 💰");
+        } else {
+          alert("Vybran autobus: " + m);
+        }
+      });
       busContainer.appendChild(btn);
     });
   });
