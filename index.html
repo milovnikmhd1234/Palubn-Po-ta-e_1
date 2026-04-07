@@ -1,1 +1,182 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Synergy MHD – Okna</title>
+<style>
+body{margin:0;font-family:sans-serif;background:#111;color:#eee;overflow-x:hidden;}
+header{background:#05204a;color:#fff;padding:12px;text-align:center}
+button{cursor:pointer;background:#05204a;color:#fff;padding:6px 12px;border:none;border-radius:4px;margin:4px}
+button:hover{background:#0a3a87}
+.window{position:absolute;top:50px;left:50px;width:90%;max-width:400px;background:#222;border:2px solid #0a3a87;border-radius:6px;box-shadow:0 0 10px #000;display:none;z-index:1000}
+.window-header{background:#05204a;padding:6px 12px;color:#fff;font-weight:bold;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #0a3a87;cursor:move}
+.window-header span{cursor:pointer}
+.window-content{padding:12px}
+input,select{width:100%;padding:6px;margin:4px 0;border-radius:4px;border:1px solid #555;background:#222;color:#eee}
+ul{padding-left:16px;margin:4px 0}
+li{margin:2px 0}
+</style>
+</head>
+<body>
+<header><h1>Synergy MHD – Okna</h1></header>
+<main>
+<button onclick="openWindow('dpWindow')">Dopravce / Linka</button>
+<button onclick="openWindow('busWindow')">Autobus / Model</button>
+<button onclick="openWindow('ticketWindow')">Jízdenky / KartaŘ</button>
+<button onclick="openWindow('panelWindow')">Panel zastávek</button>
+</main>
 
+<!-- Dopravce / Linka -->
+<div class="window" id="dpWindow">
+  <div class="window-header">Dopravce / Linka <span onclick="closeWindow('dpWindow')">×</span></div>
+  <div class="window-content">
+    <label>Dopravce:</label>
+    <select id="dpSelect">
+      <option value="PID">PID</option>
+      <option value="DPP">DPP</option>
+      <option value="DPMB">DPMB</option>
+      <option value="DPO">DPO</option>
+      <option value="MDPO">MDPO</option>
+      <option value="PMDP">PMDP</option>
+      <option value="SAD_Lucenec">SAD Lučenec</option>
+      <option value="Z-Group">Z-Group Bus</option>
+      <option value="Arriva_Cechy">Arriva Čechy</option>
+      <option value="Arriva_Morava">Arriva Morava a Slezsko</option>
+      <option value="TRANZDEV">TRANZDEV Slezko a Morava</option>
+      <option value="Bratislava">Bratislava</option>
+    </select>
+    <label>Linka:</label>
+    <input type="text" id="linka" placeholder="Zadej linku">
+    <label>Spoj:</label>
+    <input type="text" id="spoj" placeholder="Zadej spoj">
+    <button onclick="saveDP()">Uložit</button>
+  </div>
+</div>
+
+<!-- Autobus / Model -->
+<div class="window" id="busWindow">
+  <div class="window-header">Autobus / Model <span onclick="closeWindow('busWindow')">×</span></div>
+  <div class="window-content">
+    <label>Značka autobusu:</label>
+    <select id="busBrand">
+      <option value="SOR">SOR</option>
+      <option value="IVECO/Irisbus/Karosa">IVECO/Irisbus/Karosa</option>
+      <option value="Solaris">Solaris</option>
+      <option value="ISUZU">ISUZU</option>
+      <option value="Renault/Irisbus">Renault/Irisbus</option>
+      <option value="Škoda">Škoda</option>
+    </select>
+    <label>Model:</label>
+    <select id="busModel"></select>
+    <button onclick="saveBus()">Uložit</button>
+  </div>
+</div>
+
+<!-- Jízdenky -->
+<div class="window" id="ticketWindow">
+  <div class="window-header">Jízdenky <span onclick="closeWindow('ticketWindow')">×</span></div>
+  <div class="window-content">
+    <label>Typ jízdenky:</label>
+    <select id="ticketType">
+      <option value="jid1">Jednorázová</option>
+      <option value="jid2">Denní</option>
+      <option value="jid3">Týdenní</option>
+    </select>
+    <button onclick="saveTicket()">Uložit</button>
+  </div>
+</div>
+
+<!-- Panel zastávek -->
+<div class="window" id="panelWindow">
+  <div class="window-header">Panel zastávek <span onclick="closeWindow('panelWindow')">×</span></div>
+  <div class="window-content">
+    <ul id="stopsList"></ul>
+    <button id="prevStop">Předchozí</button>
+    <button id="nextStop">Další</button>
+    <button id="playGong">Gong</button>
+    <audio id="gong" src="https://www.prazsketramvaje.cz/zvuky/praha-zastavky/ostatni/gong.mp3"></audio>
+  </div>
+</div>
+
+<script>
+// --- Okna ---
+function openWindow(id){document.getElementById(id).style.display="block";}
+function closeWindow(id){document.getElementById(id).style.display="none";}
+
+// --- Dopravce ---
+function saveDP(){
+  const dp=document.getElementById('dpSelect').value;
+  const linka=document.getElementById('linka').value;
+  const spoj=document.getElementById('spoj').value;
+  localStorage.setItem('synergyDP', JSON.stringify({dp, linka, spoj}));
+  alert("Dopravce, linka a spoj uloženy!");
+}
+
+// --- Autobusy ---
+const busModels={
+  "SOR":["BN 8.5","BNG 12","NB 12","NB 18","NS 12","NS 18","EBN 8","EBN 9.5","EBN 10.5","C 9.5","C 12","CN 8.5","CN 9.5","CN 10.5","CN 12","LH 9.5","LH 10.5","LH 12"],
+  "IVECO/Irisbus/Karosa":["Karosa B 731","B 732","B 741","B 831","B 932","C 734","C 935","C 954","LC 735","LC 937","LC 956","Iveco Urbanway 10.5M","Iveco Urbanway 12M","Iveco Crossway","Irisbus Citelis 12M","Citelis 18M","Irisbus Crossway LE"],
+  "Solaris":["Urbino 8.6","Urbino 10","Urbino 12","Urbino 15","Urbino 18","Urbino 24"],
+  "ISUZU":["NovoCiti","Novo Ultra"],
+  "Renault/Irisbus":["Irisbus Agora","Irisbus Citelis/Citybus","Irisbus Crossway","Irisbus Arway/ Récréo"],
+  "Škoda":["33Tr SOR","Škoda-Solaris 24M"]
+};
+const brandSelect=document.getElementById("busBrand");
+const modelSelect=document.getElementById("busModel");
+function updateModels(){
+  const models=busModels[brandSelect.value];
+  modelSelect.innerHTML="";
+  models.forEach(m=>{const o=document.createElement("option");o.value=m;o.textContent=m;modelSelect.appendChild(o);});
+}
+brandSelect.addEventListener("change",updateModels);
+updateModels();
+function saveBus(){
+  const busBrand=brandSelect.value;
+  const busModel=modelSelect.value;
+  localStorage.setItem("synergyBus", JSON.stringify({busBrand,busModel}));
+  alert("Autobus uložen!");
+}
+
+// --- Jízdenky ---
+function saveTicket(){
+  const ticket=document.getElementById("ticketType").value;
+  localStorage.setItem("synergyTicket", ticket);
+  alert("Jízdenka uložena!");
+}
+
+// --- Panel zastávek ---
+const stops=[
+  {name:"Náměstí",time:"08:00",delay:0},
+  {name:"Hlavní nádraží*",time:"08:10",delay:2},
+  {name:"Konečná",time:"08:20",delay:-1}
+];
+let index=0;
+const list=document.getElementById("stopsList");
+function renderStops(){
+  list.innerHTML="";
+  stops.forEach((s,i)=>{
+    const li=document.createElement("li");
+    li.textContent=`${s.name} - ${s.time} ${s.delay>0?'+':'-'}${Math.abs(s.delay)}min`;
+    if(s.delay>0){li.style.color=s.delay<5?"yellow":s.delay<10?"orange":"red";}
+    else if(s.delay<0) li.style.color="green";
+    list.appendChild(li);
+  });
+}
+renderStops();
+document.getElementById("nextStop").addEventListener("click",()=>{
+  if(index<stops.length-1) index++;
+  alert("Další zastávka: "+stops[index].name);
+});
+document.getElementById("prevStop").addEventListener("click",()=>{
+  if(index>0) index--;
+  alert("Předchozí zastávka: "+stops[index].name);
+});
+document.getElementById("playGong").addEventListener("click",()=>{
+  const g=document.getElementById("gong");
+  g.currentTime=0; g.play();
+  alert("Zastávka: "+stops[index].name);
+});
+</script>
+</body>
+</html>
