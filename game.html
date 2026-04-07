@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Synergy Bus Ovládací Panel</title>
+<style>
+body{margin:0;overflow:hidden;font-family:sans-serif;background:#111;color:#fff;}
+#ui{
+  position:absolute;top:10px;left:10px;z-index:10;
+  display:flex;flex-direction:column;width:150px;
+}
+button{
+  margin:4px 0;padding:8px;border:none;border-radius:4px;background:#05204a;color:#fff;cursor:pointer;
+}
+button.active{background:#0a3a87;}
+canvas{display:block;}
+#speed{margin-top:10px;font-size:16px;}
+</style>
+</head>
+<body>
+
+<div id="ui">
+  <button id="headlights">Světla</button>
+  <button id="leftBlinker">Blinkr ⬅️</button>
+  <button id="rightBlinker">Blinkr ➡️</button>
+  <button id="doors">Dveře</button>
+  <button id="handbrake">Ruční brzda</button>
+  <div id="speed">Rychlost: 0 km/h</div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r152/three.min.js"></script>
+<script>
+// --- SCÉNA 3D ---
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x111111);
+const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 1000);
+camera.position.set(0,2,5);
+
+const renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setSize(window.innerWidth,window.innerHeight);
+document.body.appendChild(renderer.domElement);
+
+// --- LEHKÝ MODEL BUS ---
+const busGroup = new THREE.Group();
+scene.add(busGroup);
+
+// Autobus - jednoduchý box
+const busGeometry = new THREE.BoxGeometry(3,1.5,7);
+const busMaterial = new THREE.MeshStandardMaterial({color:0x0044ff});
+const bus = new THREE.Mesh(busGeometry,busMaterial);
+bus.position.y=0.75;
+busGroup.add(bus);
+
+// Volant - jednoduchý torus
+const wheelGeom = new THREE.TorusGeometry(0.3,0.05,16,100);
+const wheelMat = new THREE.MeshStandardMaterial({color:0x222222});
+const wheel = new THREE.Mesh(wheelGeom,wheelMat);
+wheel.position.set(0,1.2,2.5);
+wheel.rotation.x=Math.PI/2;
+busGroup.add(wheel);
+
+// Světla
+const leftLight = new THREE.PointLight(0xffff00,0,10);
+leftLight.position.set(-1,1.2,3.5);
+scene.add(leftLight);
+
+const rightLight = new THREE.PointLight(0xffff00,0,10);
+rightLight.position.set(1,1.2,3.5);
+scene.add(rightLight);
+
+// Dveře (simulace otevřené/zavřené)
+const door = new THREE.Mesh(new THREE.BoxGeometry(0.1,1.4,1.5), new THREE.MeshStandardMaterial({color:0xff8800}));
+door.position.set(1.55,0.75,0);
+busGroup.add(door);
+
+// Podlaha
+const floorGeom = new THREE.PlaneGeometry(50,50);
+const floorMat = new THREE.MeshStandardMaterial({color:0x222222});
+const floor = new THREE.Mesh(floorGeom,floorMat);
+floor.rotation.x=-Math.PI/2;
+scene.add(floor);
+
+// Světla scény
+const ambient = new THREE.AmbientLight(0x555555);
+scene.add(ambient);
+const dirLight = new THREE.DirectionalLight(0xffffff,0.5);
+dirLight.position.set(5,10,5);
+scene.add(dirLight);
+
+// --- OVĚŘENÍ OVLÁDACÍCH PRVKŮ ---
+let speed = 0;
+let leftBlink = false;
+let rightBlink = false;
+let doorsOpen = false;
+let headlightsOn = false;
+let handbrakeOn = false;
+
+// BUTTONS
+document.getElementById("headlights").onclick = ()=>{
+  headlightsOn=!headlightsOn;
+  leftLight.intensity = rightLight.intensity = headlightsOn?1:0;
+  document.getElementById("headlights").classList.toggle("active",headlightsOn);
+}
+
+document.getElementById("leftBlinker").onclick = ()=>{
+  leftBlink=!leftBlink;
+  document.getElementById("leftBlinker").classList.toggle("active",leftBlink);
+}
+document.getElementById("rightBlinker").onclick = ()=>{
+  rightBlink=!rightBlink;
+  document.getElementById("rightBlinker").classList.toggle("active",rightBlink);
+}
+
+document.getElementById("doors").onclick = ()=>{
+  doorsOpen=!doorsOpen;
+  door.position.x = doorsOpen?1.85:1.55;
+  document.getElementById("doors").classList.toggle("active",doorsOpen);
+}
+
+document.getElementById("handbrake").onclick = ()=>{
+  handbrakeOn=!handbrakeOn;
+  document.getElementById("handbrake").classList.toggle("active",handbrakeOn);
+}
+
+// --- ANIMACE ---
+let blinkTimer = 0;
+function animate(){
+  requestAnimationFrame(animate);
+  
+  // blinkry
+  blinkTimer++;
+  if(leftBlink && Math.floor(blinkTimer/30)%2==0) busMaterial.color.set(0xff0000);
+  else if(rightBlink && Math.floor(blinkTimer/30)%2==0) busMaterial.color.set(0x00ff00);
+  else busMaterial.color.set(0x0044ff);
+  
+  // volant otáčení (simulace)
+  wheel.rotation.z = Math.sin(Date.now()*0.002)*0.3;
+  
+  renderer.render(scene,camera);
+}
+animate();
+</script>
+
+</body>
+</html>
