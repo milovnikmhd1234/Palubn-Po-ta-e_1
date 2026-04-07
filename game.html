@@ -3,140 +3,183 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Synergy Bus Ovládací Panel</title>
+<title>Synergy Full Simulator</title>
 <style>
-body{margin:0;overflow:hidden;font-family:sans-serif;background:#111;color:#fff;}
-#ui{
-  position:absolute;top:10px;left:10px;z-index:10;
-  display:flex;flex-direction:column;width:150px;
-}
-button{
-  margin:4px 0;padding:8px;border:none;border-radius:4px;background:#05204a;color:#fff;cursor:pointer;
-}
+body{margin:0;font-family:Arial;background:#0b0f1a;color:#fff;overflow:hidden;}
+header{background:#02142e;padding:10px;display:flex;justify-content:space-between;font-size:18px;}
+#clock{font-weight:bold;}
+#ui{position:absolute;top:10px;left:10px;width:220px;z-index:10;display:flex;flex-direction:column;}
+button{margin:3px 0;padding:6px;border:none;border-radius:4px;background:#05204a;color:#fff;cursor:pointer;font-size:14px;}
 button.active{background:#0a3a87;}
-canvas{display:block;}
-#speed{margin-top:10px;font-size:16px;}
+#speed,#gear,#pedals,#status{margin-top:6px;font-size:14px;}
+.panelWindow{
+  position:absolute;top:10px;right:10px;width:320px;background:#111;border:1px solid #333;border-radius:6px;padding:10px;z-index:10;
+}
+.panelWindow h3{margin:0 0 6px 0;font-size:16px;}
+.panelWindow textarea{width:100%;height:80px;background:#222;color:#fff;border:1px solid #444;padding:4px;border-radius:4px;font-size:14px;}
+.panelWindow button{width:100%;margin-top:4px;}
+.currentStop{font-size:20px;font-weight:bold;}
+.nextStops{font-size:14px;opacity:0.8;margin-top:4px;}
+.delay{font-size:14px;margin-top:4px;}
+.green{color:#00ff88;}
+.yellow{color:#ffd500;}
+.orange{color:#ff8c00;}
+.red{color:#ff3b3b;}
 </style>
 </head>
 <body>
 
+<header>
+  <div>Synergy Simulator</div>
+  <div id="clock"></div>
+</header>
+
+<!-- UI ovládací panel -->
 <div id="ui">
   <button id="headlights">Světla</button>
   <button id="leftBlinker">Blinkr ⬅️</button>
   <button id="rightBlinker">Blinkr ➡️</button>
   <button id="doors">Dveře</button>
   <button id="handbrake">Ruční brzda</button>
+  <div id="gear">Převodovka: N</div>
+  <div id="pedals">Pedály: brzda 0%, plyn 0%</div>
   <div id="speed">Rychlost: 0 km/h</div>
+  <div id="status">Stav: --</div>
 </div>
 
+<!-- Palubní PC okno -->
+<div class="panelWindow">
+  <h3>Palubní PC</h3>
+  <div class="currentStop" id="currentStop">--</div>
+  <div class="nextStops" id="nextStops"></div>
+  <div class="delay" id="delayBox">Zpoždění: 0 min</div>
+  <button onclick="prevStop()">⬅️ Předchozí</button>
+  <button onclick="nextStop()">➡️ Další</button>
+  <button onclick="playAnnouncement()">🔊 Hlášení</button>
+  <textarea id="inputStops" placeholder="Zastávka - čas (např: Náměstí - 08:00)"></textarea>
+  <button onclick="loadStops()">Načíst zastávky</button>
+</div>
+
+<!-- gong -->
+<audio id="gong" src="https://www.prazsketramvaje.cz/zvuky/praha-zastavky/ostatni/gong.mp3"></audio>
+
+<!-- Three.js -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r152/three.min.js"></script>
 <script>
-// --- SCÉNA 3D ---
-const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x111111);
-const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 1000);
+// ===== CLOCK =====
+function updateClock(){
+  const d=new Date();
+  document.getElementById("clock").innerText=
+    d.getHours().toString().padStart(2,"0")+":"+
+    d.getMinutes().toString().padStart(2,"0")+":"+
+    d.getSeconds().toString().padStart(2,"0");
+}
+setInterval(updateClock,1000);
+
+// ===== STOPS =====
+let stops=[]; let index=0;
+function loadStops(){
+  const lines=document.getElementById("inputStops").value.split("\n");
+  stops=[];
+  lines.forEach(l=>{
+    if(!l.trim()) return;
+    const parts=l.split("-");
+    stops.push({name:parts[0].trim(), time:parts[1]?.trim()||"00:00", delay: Math.floor(Math.random()*11)-5});
+  });
+  index=0; renderStops();
+}
+function renderStops(){
+  if(!stops[index]) return;
+  document.getElementById("currentStop").innerText=stops[index].name+" ("+stops[index].time+")";
+  let next="";
+  for(let i=index+1;i<stops.length;i++) next+=stops[i].name+" ("+stops[i].time+")\n";
+  document.getElementById("nextStops").innerText=next;
+  const d=stops[index].delay; const box=document.getElementById("delayBox");
+  box.innerText="Zpoždění: "+(d>=0?"+":"")+d+" min";
+  box.className="delay"; if(d<0) box.classList.add("green"); else if(d<=2) box.classList.add("yellow"); else if(d<=5) box.classList.add("orange"); else box.classList.add("red");
+}
+function nextStop(){if(index<stops.length-1){index++;renderStops();}}
+function prevStop(){if(index>0){index--;renderStops();}}
+function playAnnouncement(){const stop=stops[index]; if(!stop) return;
+  const g=document.getElementById("gong"); g.currentTime=0; g.play();
+  setTimeout(()=>{const msg=new SpeechSynthesisUtterance("Příští zastávka "+stop.name); msg.lang="cs-CZ"; msg.pitch=1.2; msg.rate=0.9; speechSynthesis.speak(msg);},1000);
+}
+
+// ===== 3D SCÉNA =====
+const scene=new THREE.Scene(); scene.background=new THREE.Color(0x111111);
+const camera=new THREE.PerspectiveCamera(60,window.innerWidth/window.innerHeight,0.1,1000);
 camera.position.set(0,2,5);
+const renderer=new THREE.WebGLRenderer({antialias:true}); renderer.setSize(window.innerWidth,window.innerHeight); document.body.appendChild(renderer.domElement);
 
-const renderer = new THREE.WebGLRenderer({antialias:true});
-renderer.setSize(window.innerWidth,window.innerHeight);
-document.body.appendChild(renderer.domElement);
+// Autobus
+const busGroup=new THREE.Group(); scene.add(busGroup);
+const busGeometry=new THREE.BoxGeometry(3,1.5,7);
+const busMaterial=new THREE.MeshStandardMaterial({color:0x0044ff});
+const bus=new THREE.Mesh(busGeometry,busMaterial); bus.position.y=0.75; busGroup.add(bus);
 
-// --- LEHKÝ MODEL BUS ---
-const busGroup = new THREE.Group();
-scene.add(busGroup);
+// volant
+const wheelGeom=new THREE.TorusGeometry(0.3,0.05,16,100);
+const wheelMat=new THREE.MeshStandardMaterial({color:0x222222});
+const wheel=new THREE.Mesh(wheelGeom,wheelMat); wheel.position.set(0,1.2,2.5); wheel.rotation.x=Math.PI/2; busGroup.add(wheel);
 
-// Autobus - jednoduchý box
-const busGeometry = new THREE.BoxGeometry(3,1.5,7);
-const busMaterial = new THREE.MeshStandardMaterial({color:0x0044ff});
-const bus = new THREE.Mesh(busGeometry,busMaterial);
-bus.position.y=0.75;
-busGroup.add(bus);
+// dveře
+const door=new THREE.Mesh(new THREE.BoxGeometry(0.1,1.4,1.5), new THREE.MeshStandardMaterial({color:0xff8800}));
+door.position.set(1.55,0.75,0); busGroup.add(door);
 
-// Volant - jednoduchý torus
-const wheelGeom = new THREE.TorusGeometry(0.3,0.05,16,100);
-const wheelMat = new THREE.MeshStandardMaterial({color:0x222222});
-const wheel = new THREE.Mesh(wheelGeom,wheelMat);
-wheel.position.set(0,1.2,2.5);
-wheel.rotation.x=Math.PI/2;
-busGroup.add(wheel);
+// světla
+const leftLight=new THREE.PointLight(0xffff00,0,10); leftLight.position.set(-1,1.2,3.5); scene.add(leftLight);
+const rightLight=new THREE.PointLight(0xffff00,0,10); rightLight.position.set(1,1.2,3.5); scene.add(rightLight);
 
-// Světla
-const leftLight = new THREE.PointLight(0xffff00,0,10);
-leftLight.position.set(-1,1.2,3.5);
-scene.add(leftLight);
+// podlaha
+const floorGeom=new THREE.PlaneGeometry(50,50);
+const floorMat=new THREE.MeshStandardMaterial({color:0x222222});
+const floor=new THREE.Mesh(floorGeom,floorMat); floor.rotation.x=-Math.PI/2; scene.add(floor);
 
-const rightLight = new THREE.PointLight(0xffff00,0,10);
-rightLight.position.set(1,1.2,3.5);
-scene.add(rightLight);
+// světla scény
+scene.add(new THREE.AmbientLight(0x555555));
+const dirLight=new THREE.DirectionalLight(0xffffff,0.5); dirLight.position.set(5,10,5); scene.add(dirLight);
 
-// Dveře (simulace otevřené/zavřené)
-const door = new THREE.Mesh(new THREE.BoxGeometry(0.1,1.4,1.5), new THREE.MeshStandardMaterial({color:0xff8800}));
-door.position.set(1.55,0.75,0);
-busGroup.add(door);
+// ovládání
+let speed=0,leftBlink=false,rightBlink=false,doorsOpen=false,headlightsOn=false,handbrakeOn=false,gear='N';
+const pedals={gas:0,brake:0};
 
-// Podlaha
-const floorGeom = new THREE.PlaneGeometry(50,50);
-const floorMat = new THREE.MeshStandardMaterial({color:0x222222});
-const floor = new THREE.Mesh(floorGeom,floorMat);
-floor.rotation.x=-Math.PI/2;
-scene.add(floor);
+document.getElementById("headlights").onclick=()=>{headlightsOn=!headlightsOn; leftLight.intensity=rightLight.intensity=headlightsOn?1:0; document.getElementById("headlights").classList.toggle("active",headlightsOn);}
+document.getElementById("leftBlinker").onclick=()=>{leftBlink=!leftBlink; document.getElementById("leftBlinker").classList.toggle("active",leftBlink);}
+document.getElementById("rightBlinker").onclick=()=>{rightBlink=!rightBlink; document.getElementById("rightBlinker").classList.toggle("active",rightBlink);}
+document.getElementById("doors").onclick=()=>{doorsOpen=!doorsOpen; door.position.x=doorsOpen?1.85:1.55; document.getElementById("doors").classList.toggle("active",doorsOpen);}
+document.getElementById("handbrake").onclick=()=>{handbrakeOn=!handbrakeOn; document.getElementById("handbrake").classList.toggle("active",handbrakeOn);}
 
-// Světla scény
-const ambient = new THREE.AmbientLight(0x555555);
-scene.add(ambient);
-const dirLight = new THREE.DirectionalLight(0xffffff,0.5);
-dirLight.position.set(5,10,5);
-scene.add(dirLight);
+// pedály a převodovka simulace (simple)
+window.addEventListener('keydown',e=>{
+  if(e.key=='ArrowUp') pedals.gas=Math.min(pedals.gas+5,100);
+  if(e.key=='ArrowDown') pedals.brake=Math.min(pedals.brake+5,100);
+  if(e.key=='d') gear='D'; if(e.key=='n') gear='N'; if(e.key=='r') gear='R';
+});
+window.addEventListener('keyup',e=>{
+  if(e.key=='ArrowUp') pedals.gas=0;
+  if(e.key=='ArrowDown') pedals.brake=0;
+});
 
-// --- OVĚŘENÍ OVLÁDACÍCH PRVKŮ ---
-let speed = 0;
-let leftBlink = false;
-let rightBlink = false;
-let doorsOpen = false;
-let headlightsOn = false;
-let handbrakeOn = false;
-
-// BUTTONS
-document.getElementById("headlights").onclick = ()=>{
-  headlightsOn=!headlightsOn;
-  leftLight.intensity = rightLight.intensity = headlightsOn?1:0;
-  document.getElementById("headlights").classList.toggle("active",headlightsOn);
-}
-
-document.getElementById("leftBlinker").onclick = ()=>{
-  leftBlink=!leftBlink;
-  document.getElementById("leftBlinker").classList.toggle("active",leftBlink);
-}
-document.getElementById("rightBlinker").onclick = ()=>{
-  rightBlink=!rightBlink;
-  document.getElementById("rightBlinker").classList.toggle("active",rightBlink);
-}
-
-document.getElementById("doors").onclick = ()=>{
-  doorsOpen=!doorsOpen;
-  door.position.x = doorsOpen?1.85:1.55;
-  document.getElementById("doors").classList.toggle("active",doorsOpen);
-}
-
-document.getElementById("handbrake").onclick = ()=>{
-  handbrakeOn=!handbrakeOn;
-  document.getElementById("handbrake").classList.toggle("active",handbrakeOn);
-}
-
-// --- ANIMACE ---
-let blinkTimer = 0;
+// animace
+let blinkTimer=0;
 function animate(){
   requestAnimationFrame(animate);
-  
-  // blinkry
   blinkTimer++;
   if(leftBlink && Math.floor(blinkTimer/30)%2==0) busMaterial.color.set(0xff0000);
   else if(rightBlink && Math.floor(blinkTimer/30)%2==0) busMaterial.color.set(0x00ff00);
   else busMaterial.color.set(0x0044ff);
+  wheel.rotation.z=Math.sin(Date.now()*0.002)*0.3;
   
-  // volant otáčení (simulace)
-  wheel.rotation.z = Math.sin(Date.now()*0.002)*0.3;
-  
+  // rychlost simulace
+  speed=Math.max(0,speed+0.01*(pedals.gas-pedals.brake));
+  document.getElementById("speed").innerText="Rychlost: "+Math.round(speed)+" km/h";
+  document.getElementById("gear").innerText="Převodovka: "+gear;
+  document.getElementById("pedals").innerText="Pedály: brzda "+pedals.brake+"%, plyn "+pedals.gas+"%";
+  let st="Stav: ";
+  st+=headlightsOn?"Světla ":""; st+=doorsOpen?"Dveře ":""; st+=handbrakeOn?"R.Brzd ":"";
+  st+=leftBlink?"⬅️ ":""; st+=rightBlink?"➡️ ":"";
+  document.getElementById("status").innerText=st;
+
   renderer.render(scene,camera);
 }
 animate();
