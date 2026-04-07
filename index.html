@@ -27,6 +27,11 @@ button:hover{background:#0a3a87;}
 .busIcon{height:30px;margin-right:6px;vertical-align:middle;}
 .ticket-section{margin-top:15px;}
 .ticket-section select,input{margin-bottom:5px;}
+/* ANIMACE ZASTÁVEK */
+@keyframes slideUp {
+  0% {transform: translateY(50px); opacity:0;}
+  100% {transform: translateY(0); opacity:1;}
+}
 </style>
 </head>
 <body>
@@ -65,46 +70,11 @@ button:hover{background:#0a3a87;}
 
     <select id="busSelect">
       <option value="">Vyber autobus</option>
-      <!-- SOR -->
       <option value="SOR BN 8.5">🔹 SOR BN 8.5</option>
       <option value="SOR BNG 12">🔹 SOR BNG 12</option>
-      <option value="SOR NB 12">🔹 SOR NB 12</option>
-      <option value="SOR NB 18">🔹 SOR NB 18</option>
-      <option value="SOR NS 12">🔹 SOR NS 12</option>
-      <option value="SOR NS 18">🔹 SOR NS 18</option>
-      <option value="SOR EBN 8">🔹 SOR EBN 8</option>
-      <option value="SOR EBN 9.5">🔹 SOR EBN 9.5</option>
-      <option value="SOR EBN 10.5">🔹 SOR EBN 10.5</option>
-      <option value="SOR C 9.5">🔹 SOR C 9.5</option>
-      <option value="SOR C 12">🔹 SOR C 12</option>
-      <option value="SOR CN 8.5">🔹 SOR CN 8.5</option>
-      <option value="SOR CN 9.5">🔹 SOR CN 9.5</option>
-      <option value="SOR CN 10.5">🔹 SOR CN 10.5</option>
-      <option value="SOR CN 12">🔹 SOR CN 12</option>
-      <option value="SOR LH 9.5">🔹 SOR LH 9.5</option>
-      <option value="SOR LH 10.5">🔹 SOR LH 10.5</option>
-      <option value="SOR LH 12">🔹 SOR LH 12</option>
-      <!-- Solaris -->
-      <option value="Solaris Urbino 8.6">🟢 Solaris Urbino 8.6</option>
-      <option value="Solaris Urbino 10">🟢 Solaris Urbino 10</option>
       <option value="Solaris Urbino 12">🟢 Solaris Urbino 12</option>
-      <option value="Solaris Urbino 15">🟢 Solaris Urbino 15</option>
-      <option value="Solaris Urbino 18">🟢 Solaris Urbino 18</option>
-      <option value="Solaris Urbino 24">🟢 Solaris Urbino 24</option>
-      <!-- Iveco / Irisbus / Karosa -->
       <option value="Karosa B731">🚌 Karosa B 731</option>
-      <option value="Karosa B732">🚌 Karosa B 732</option>
-      <option value="Karosa B741">🚌 Karosa B 741</option>
-      <option value="Karosa B831">🚌 Karosa B 831</option>
-      <option value="Karosa B932">🚌 Karosa B 932</option>
-      <option value="Iveco Urbanway 10.5M">🚌 Iveco Urbanway 10.5M</option>
-      <option value="Iveco Urbanway 12M">🚌 Iveco Urbanway 12M</option>
-      <option value="Irisbus Citelis 12M">🚌 Irisbus Citelis 12M</option>
-      <option value="Irisbus Citelis 18M">🚌 Irisbus Citelis 18M</option>
-      <option value="Irisbus Crossway LE">🚌 Irisbus Crossway LE</option>
-      <!-- Škoda -->
       <option value="Škoda 33Tr SOR">🔴 Škoda 33Tr SOR</option>
-      <option value="Škoda-Solaris 24M">🔴 Škoda-Solaris 24M</option>
     </select>
 
     <input type="text" id="lineInput" placeholder="Linka (např. 101A)">
@@ -216,13 +186,8 @@ function render(animate=false){
   const delayBox=document.getElementById("delayBox");
 
   if(animate){
-    cur.style.transform="translateY(-50px)";
-    cur.style.opacity="0";
-    setTimeout(()=>{
-      cur.innerText=stops[index].name + " (" + stops[index].time + ")";
-      cur.style.transform="translateY(0px)";
-      cur.style.opacity="1";
-    },200);
+    cur.style.animation="slideUp 0.5s";
+    setTimeout(()=>{ cur.innerText=stops[index].name + " (" + stops[index].time + ")"; }, 100);
   }else{
     cur.innerText=stops[index].name + " (" + stops[index].time + ")";
   }
