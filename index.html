@@ -3,55 +3,169 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Synergy Panel Animovaný</title>
+<title>Synergy Palubní Panel</title>
 <style>
-body{margin:0;font-family:Arial;background:#0b0f1a;color:#fff;overflow:hidden;}
-header{background:#02142e;padding:10px;display:flex;justify-content:space-between;font-size:18px;}
-.panel{padding:15px;position:relative;overflow:hidden;height:350px;}
+body{margin:0;font-family:Arial,sans-serif;background:#0b0f1a;color:#fff;overflow-x:hidden;}
+header{background:#02142e;padding:10px;display:flex;justify-content:space-between;align-items:center;font-size:18px;}
+#hamburger{font-size:26px;cursor:pointer;margin-right:12px;}
+.sidebar{position:fixed;left:-280px;top:0;width:280px;height:100vh;background:#08306b;color:#fff;transition:left 0.3s;overflow:auto;padding:50px 10px 10px 10px;}
+.sidebar.open{left:0;}
+.sidebar a{display:block;color:#fff;text-decoration:none;padding:10px;border-bottom:1px solid #0a3a87;}
+.sidebar a:hover{background:#0a3a87;}
+.panel{padding:10px;margin-left:0;transition:margin-left 0.3s;}
+.panel.shift{margin-left:280px;}
+input,select,textarea,button{width:100%;margin:4px 0;padding:8px;border-radius:4px;border:1px solid #444;font-size:14px;}
+button{background:#05204a;color:#fff;cursor:pointer;}
+button:hover{background:#0a3a87;}
 .current{font-size:28px;font-weight:bold;margin-bottom:5px;transition:all 0.5s;}
 .next{font-size:16px;opacity:0.8;transition:all 0.5s;}
-.delay{font-size:18px;margin-top:10px;}
+.delay{font-size:18px;margin-top:5px;}
 .green{color:#00ff88;}
 .yellow{color:#ffd500;}
 .orange{color:#ff8c00;}
 .red{color:#ff3b3b;}
-input,select,button{width:100%;margin:6px 0;padding:8px;border-radius:4px;border:1px solid #444;font-size:15px;}
-button{background:#05204a;color:#fff;cursor:pointer;}
-button:hover{background:#0a3a87;}
+.busIcon{height:30px;margin-right:6px;vertical-align:middle;}
+.ticket-section{margin-top:15px;}
+.ticket-section select,input{margin-bottom:5px;}
 </style>
 </head>
 <body>
 
 <header>
-  <div>Synergy Panel</div>
+  <div id="hamburger">☰ Synergy</div>
   <div id="clock"></div>
 </header>
 
-<div class="panel">
-  <div class="current" id="currentStop">--</div>
-  <div class="next" id="nextStops"></div>
-  <div class="delay" id="delayBox">Zpoždění: 0 min</div>
+<div class="sidebar" id="sidebar">
+  <a href="#" id="closeSidebar">Zavřít menu</a>
+  <a href="#" onclick="showSection('line')">Linky / Spoje</a>
+  <a href="#" onclick="showSection('tickets')">Jízdenky</a>
+  <a href="#" onclick="showSection('admin')">Admin</a>
+</div>
 
-  <select id="lineSelect">
-    <option value="">Vyber linku</option>
-    <option value="101A">101A</option>
-    <option value="102B">102B</option>
-    <option value="103C">103C</option>
-  </select>
+<div class="panel" id="mainPanel">
+  <!-- LINKY / SPOJE -->
+  <div id="line" class="section">
+    <h2>Palubní Panel – Linky / Spoje</h2>
+    <select id="dpSelect">
+      <option value="">Vyber dopravce</option>
+      <option value="PID">PID</option>
+      <option value="DPP">DPP</option>
+      <option value="DPMB">DPMB</option>
+      <option value="DPO">DPO</option>
+      <option value="MDPO">MDPO</option>
+      <option value="PMDP">PMDP</option>
+      <option value="SAD">SAD Lučenec</option>
+      <option value="ZGroup">Z-Group Bus</option>
+      <option value="ArrivaC">Arriva Čechy</option>
+      <option value="ArrivaM">Arriva Morava a Slezsko</option>
+      <option value="Tranzdev">TRANZDEV Slezko & Morava</option>
+      <option value="Bratislava">Bratislava</option>
+    </select>
 
-  <input type="text" id="tripInput" placeholder="Spoj (např. 1)">
-  <textarea id="inputStops" placeholder="Zastávka - čas (např: Náměstí - 08:00)"></textarea>
+    <select id="busSelect">
+      <option value="">Vyber autobus</option>
+      <!-- SOR -->
+      <option value="SOR BN 8.5">🔹 SOR BN 8.5</option>
+      <option value="SOR BNG 12">🔹 SOR BNG 12</option>
+      <option value="SOR NB 12">🔹 SOR NB 12</option>
+      <option value="SOR NB 18">🔹 SOR NB 18</option>
+      <option value="SOR NS 12">🔹 SOR NS 12</option>
+      <option value="SOR NS 18">🔹 SOR NS 18</option>
+      <option value="SOR EBN 8">🔹 SOR EBN 8</option>
+      <option value="SOR EBN 9.5">🔹 SOR EBN 9.5</option>
+      <option value="SOR EBN 10.5">🔹 SOR EBN 10.5</option>
+      <option value="SOR C 9.5">🔹 SOR C 9.5</option>
+      <option value="SOR C 12">🔹 SOR C 12</option>
+      <option value="SOR CN 8.5">🔹 SOR CN 8.5</option>
+      <option value="SOR CN 9.5">🔹 SOR CN 9.5</option>
+      <option value="SOR CN 10.5">🔹 SOR CN 10.5</option>
+      <option value="SOR CN 12">🔹 SOR CN 12</option>
+      <option value="SOR LH 9.5">🔹 SOR LH 9.5</option>
+      <option value="SOR LH 10.5">🔹 SOR LH 10.5</option>
+      <option value="SOR LH 12">🔹 SOR LH 12</option>
+      <!-- Solaris -->
+      <option value="Solaris Urbino 8.6">🟢 Solaris Urbino 8.6</option>
+      <option value="Solaris Urbino 10">🟢 Solaris Urbino 10</option>
+      <option value="Solaris Urbino 12">🟢 Solaris Urbino 12</option>
+      <option value="Solaris Urbino 15">🟢 Solaris Urbino 15</option>
+      <option value="Solaris Urbino 18">🟢 Solaris Urbino 18</option>
+      <option value="Solaris Urbino 24">🟢 Solaris Urbino 24</option>
+      <!-- Iveco / Irisbus / Karosa -->
+      <option value="Karosa B731">🚌 Karosa B 731</option>
+      <option value="Karosa B732">🚌 Karosa B 732</option>
+      <option value="Karosa B741">🚌 Karosa B 741</option>
+      <option value="Karosa B831">🚌 Karosa B 831</option>
+      <option value="Karosa B932">🚌 Karosa B 932</option>
+      <option value="Iveco Urbanway 10.5M">🚌 Iveco Urbanway 10.5M</option>
+      <option value="Iveco Urbanway 12M">🚌 Iveco Urbanway 12M</option>
+      <option value="Irisbus Citelis 12M">🚌 Irisbus Citelis 12M</option>
+      <option value="Irisbus Citelis 18M">🚌 Irisbus Citelis 18M</option>
+      <option value="Irisbus Crossway LE">🚌 Irisbus Crossway LE</option>
+      <!-- Škoda -->
+      <option value="Škoda 33Tr SOR">🔴 Škoda 33Tr SOR</option>
+      <option value="Škoda-Solaris 24M">🔴 Škoda-Solaris 24M</option>
+    </select>
 
-  <button onclick="loadLine()">Načíst linku</button>
-  <button onclick="prevStop()">⬅️ Předchozí</button>
-  <button onclick="nextStop()">➡️ Další</button>
-  <button onclick="playAnnouncement()">🔊 Hlášení</button>
+    <input type="text" id="lineInput" placeholder="Linka (např. 101A)">
+    <input type="text" id="tripInput" placeholder="Spoj (např. 1)">
+    <textarea id="inputStops" placeholder="Zastávky - čas (Náměstí - 08:00, * = zastávka na znamení)"></textarea>
+
+    <div class="current" id="currentStop">--</div>
+    <div class="next" id="nextStops"></div>
+    <div class="delay" id="delayBox">Zpoždění: 0 min</div>
+
+    <button onclick="loadLine()">Načíst linku</button>
+    <button onclick="prevStop()">⬅️ Předchozí</button>
+    <button onclick="nextStop()">➡️ Další</button>
+    <button onclick="playAnnouncement()">🔊 Hlášení</button>
+  </div>
+
+  <!-- JÍZDENKY -->
+  <div id="tickets" class="section" style="display:none;">
+    <h2>Jízdenky</h2>
+    <select id="ticketType">
+      <option value="free">Zdarma</option>
+      <option value="child">6-15</option>
+      <option value="adult">15+</option>
+      <option value="senior">65+</option>
+      <option value="ZTP">Osoba ZTP</option>
+      <option value="baggage">Zavazadlo 3+kg</option>
+      <option value="pet">Pes</option>
+      <option value="ep">Dobití EP</option>
+    </select>
+    <select id="paymentType">
+      <option value="bck">BČK</option>
+      <option value="ep">EP</option>
+      <option value="cash">Hotovost</option>
+    </select>
+    <button onclick="sellTicket()">Prodat</button>
+    <pre id="ticketLog" style="background:#222;padding:8px;border-radius:4px;height:120px;overflow:auto;"></pre>
+  </div>
+
+  <!-- ADMIN -->
+  <div id="admin" class="section" style="display:none;">
+    <h2>Admin</h2>
+    <input type="password" id="adminPass" placeholder="Heslo admin">
+    <button onclick="adminLogin()">Přihlásit</button>
+    <div id="adminPanel" style="display:none;">
+      <p>Vítej, admin!</p>
+    </div>
+  </div>
 </div>
 
 <audio id="gong" src="https://www.prazsketramvaje.cz/zvuky/praha-zastavky/ostatni/gong.mp3"></audio>
 
 <script>
-// ===== CLOCK =====
+// SIDEBAR
+const hamburger=document.getElementById('hamburger');
+const sidebar=document.getElementById('sidebar');
+const closeSidebar=document.getElementById('closeSidebar');
+const mainPanel=document.getElementById('mainPanel');
+hamburger.onclick=()=>{sidebar.classList.add('open'); mainPanel.classList.add('shift');};
+closeSidebar.onclick=()=>{sidebar.classList.remove('open'); mainPanel.classList.remove('shift');};
+
+// CLOCK
 function updateClock(){
   const d=new Date();
   document.getElementById("clock").innerText=
@@ -61,20 +175,24 @@ function updateClock(){
 }
 setInterval(updateClock,1000);
 
-// ===== DATA =====
-let stops=[],index=0;
-let animating=false;
+// SECTIONS
+function showSection(id){
+  document.querySelectorAll('.section').forEach(s=>s.style.display='none');
+  document.getElementById(id).style.display='block';
+}
 
-// ===== LOAD LINE =====
+// DATA
+let stops=[],index=0;
+
+// LOAD LINE
 function loadLine(){
-  const line=document.getElementById("lineSelect").value;
+  const dp=document.getElementById("dpSelect").value;
+  const bus=document.getElementById("busSelect").value;
+  const line=document.getElementById("lineInput").value.trim();
   const trip=document.getElementById("tripInput").value.trim();
   const linesData=document.getElementById("inputStops").value.split("\n");
 
-  if(!line || !trip){
-    alert("Vyber linku a zadej spoj!");
-    return;
-  }
+  if(!dp || !bus || !line || !trip){ alert("Vyplň všechny údaje!"); return; }
 
   stops=[];
   linesData.forEach(l=>{
@@ -82,41 +200,38 @@ function loadLine(){
     const parts=l.split("-");
     stops.push({
       name:parts[0].trim(),
-      time:parts[1]?.trim() || "00:00",
-      delay: Math.floor(Math.random()*11)-5 // simulace -5 až +5 min
+      time:parts[1]?.trim()||"00:00",
+      delay: Math.floor(Math.random()*11)-5
     });
   });
   index=0;
   render(true);
 }
 
-// ===== RENDER =====
-function render(animateTransition=false){
+// RENDER
+function render(animate=false){
   if(!stops[index]) return;
-
-  const curDiv=document.getElementById("currentStop");
-  const nextDiv=document.getElementById("nextStops");
+  const cur=document.getElementById("currentStop");
+  const next=document.getElementById("nextStops");
   const delayBox=document.getElementById("delayBox");
 
-  if(animateTransition){
-    curDiv.style.transform="translateY(-50px)";
-    curDiv.style.opacity="0";
+  if(animate){
+    cur.style.transform="translateY(-50px)";
+    cur.style.opacity="0";
     setTimeout(()=>{
-      curDiv.innerText=stops[index].name + " (" + stops[index].time + ")";
-      curDiv.style.transform="translateY(0px)";
-      curDiv.style.opacity="1";
+      cur.innerText=stops[index].name + " (" + stops[index].time + ")";
+      cur.style.transform="translateY(0px)";
+      cur.style.opacity="1";
     },200);
-  } else {
-    curDiv.innerText=stops[index].name + " (" + stops[index].time + ")";
+  }else{
+    cur.innerText=stops[index].name + " (" + stops[index].time + ")";
   }
 
-  let nextHTML="";
+  next.innerHTML="";
   for(let i=index+1;i<stops.length;i++){
-    nextHTML+=stops[i].name+" ("+stops[i].time+")<br>";
+    next.innerHTML+=stops[i].name + " (" + stops[i].time + ")<br>";
   }
-  nextDiv.innerHTML=nextHTML;
 
-  // zpoždění
   const d=stops[index].delay;
   delayBox.innerText="Zpoždění: "+(d>=0?"+":"")+d+" min";
   delayBox.className="delay";
@@ -126,38 +241,41 @@ function render(animateTransition=false){
   else delayBox.classList.add("red");
 }
 
-// ===== POSUN =====
-function nextStop(){
-  if(index<stops.length-1){
-    index++;
-    render(true);
-  }
-}
-function prevStop(){
-  if(index>0){
-    index--;
-    render(true);
-  }
-}
+// POSUN
+function nextStop(){ if(index<stops.length-1){ index++; render(true); } }
+function prevStop(){ if(index>0){ index--; render(true); } }
 
-// ===== HLÁŠENÍ =====
+// HLÁŠENÍ
 function playAnnouncement(){
   const stop=stops[index];
   if(!stop) return;
-
   const g=document.getElementById("gong");
-  g.currentTime=0;
-  g.play();
-
+  g.currentTime=0; g.play();
   setTimeout(()=>{
     const msg=new SpeechSynthesisUtterance("Příští zastávka " + stop.name);
-    msg.lang="cs-CZ";
-    msg.pitch=1.2;
-    msg.rate=0.9;
+    msg.lang="cs-CZ"; msg.pitch=1.2; msg.rate=0.9;
     speechSynthesis.speak(msg);
   },800);
 }
 
+// JÍZDENKY
+function sellTicket(){
+  const type=document.getElementById("ticketType").value;
+  const pay=document.getElementById("paymentType").value;
+  const log=document.getElementById("ticketLog");
+  log.textContent += `Prodej: ${type} | Platba: ${pay}\n`;
+  log.scrollTop=log.scrollHeight;
+}
+
+// ADMIN
+function adminLogin(){
+  const pass=document.getElementById("adminPass").value;
+  if(pass==="K3508O"){
+    document.getElementById("adminPanel").style.display="block";
+    alert("Admin přihlášen!");
+  }else{ alert("Špatné heslo!"); }
+}
 </script>
+
 </body>
 </html>
