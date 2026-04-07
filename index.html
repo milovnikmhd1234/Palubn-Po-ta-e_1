@@ -3,212 +3,161 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Synergy MHD – Kompletní</title>
+<title>Synergy Panel Animovaný</title>
 <style>
-/* --- Základní styl --- */
-body{margin:0;font-family:sans-serif;background:#111;color:#eee;overflow-x:hidden;}
-header{background:#05204a;color:#fff;padding:12px;text-align:center}
-button{cursor:pointer;background:#05204a;color:#fff;padding:6px 12px;border:none;border-radius:4px;margin:4px}
-button:hover{background:#0a3a87}
-.window{position:absolute;top:50px;left:50px;width:90%;max-width:450px;background:#222;border:2px solid #0a3a87;border-radius:6px;box-shadow:0 0 10px #000;display:none;z-index:1000}
-.window-header{background:#05204a;padding:6px 12px;color:#fff;font-weight:bold;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #0a3a87;cursor:move}
-.window-header span{cursor:pointer}
-.window-content{padding:12px}
-input,select{width:100%;padding:6px;margin:4px 0;border-radius:4px;border:1px solid #555;background:#222;color:#eee}
-ul{padding-left:16px;margin:4px 0}
-li{margin:2px 0}
+body{margin:0;font-family:Arial;background:#0b0f1a;color:#fff;overflow:hidden;}
+header{background:#02142e;padding:10px;display:flex;justify-content:space-between;font-size:18px;}
+.panel{padding:15px;position:relative;overflow:hidden;height:350px;}
+.current{font-size:28px;font-weight:bold;margin-bottom:5px;transition:all 0.5s;}
+.next{font-size:16px;opacity:0.8;transition:all 0.5s;}
+.delay{font-size:18px;margin-top:10px;}
+.green{color:#00ff88;}
+.yellow{color:#ffd500;}
+.orange{color:#ff8c00;}
+.red{color:#ff3b3b;}
+input,select,button{width:100%;margin:6px 0;padding:8px;border-radius:4px;border:1px solid #444;font-size:15px;}
+button{background:#05204a;color:#fff;cursor:pointer;}
+button:hover{background:#0a3a87;}
 </style>
 </head>
 <body>
-<header><h1>Synergy MHD – Kompletní</h1></header>
-<main>
-<button onclick="openWindow('dpWindow')">Dopravce / Linka</button>
-<button onclick="openWindow('busWindow')">Autobus / Model</button>
-<button onclick="openWindow('ticketWindow')">Prodej jízdenek</button>
-<button onclick="openWindow('panelWindow')">Panel zastávek</button>
-</main>
 
-<!-- Dopravce / Linka -->
-<div class="window" id="dpWindow">
-  <div class="window-header">Dopravce / Linka <span onclick="closeWindow('dpWindow')">×</span></div>
-  <div class="window-content">
-    <label>Dopravce:</label>
-    <select id="dpSelect">
-      <option value="PID">PID</option>
-      <option value="DPP">DPP</option>
-      <option value="DPMB">DPMB</option>
-      <option value="DPO">DPO</option>
-      <option value="MDPO">MDPO</option>
-      <option value="PMDP">PMDP</option>
-      <option value="SAD_Lucenec">SAD Lučenec</option>
-      <option value="Z-Group">Z-Group Bus</option>
-      <option value="Arriva_Cechy">Arriva Čechy</option>
-      <option value="Arriva_Morava">Arriva Morava a Slezsko</option>
-      <option value="TRANZDEV">TRANZDEV Slezko a Morava</option>
-      <option value="Bratislava">Bratislava</option>
-    </select>
-    <label>Linka:</label>
-    <input type="text" id="linka" placeholder="Zadej linku">
-    <label>Spoj:</label>
-    <input type="text" id="spoj" placeholder="Zadej spoj">
-    <button onclick="saveDP()">Uložit</button>
-  </div>
+<header>
+  <div>Synergy Panel</div>
+  <div id="clock"></div>
+</header>
+
+<div class="panel">
+  <div class="current" id="currentStop">--</div>
+  <div class="next" id="nextStops"></div>
+  <div class="delay" id="delayBox">Zpoždění: 0 min</div>
+
+  <select id="lineSelect">
+    <option value="">Vyber linku</option>
+    <option value="101A">101A</option>
+    <option value="102B">102B</option>
+    <option value="103C">103C</option>
+  </select>
+
+  <input type="text" id="tripInput" placeholder="Spoj (např. 1)">
+  <textarea id="inputStops" placeholder="Zastávka - čas (např: Náměstí - 08:00)"></textarea>
+
+  <button onclick="loadLine()">Načíst linku</button>
+  <button onclick="prevStop()">⬅️ Předchozí</button>
+  <button onclick="nextStop()">➡️ Další</button>
+  <button onclick="playAnnouncement()">🔊 Hlášení</button>
 </div>
 
-<!-- Autobus / Model -->
-<div class="window" id="busWindow">
-  <div class="window-header">Autobus / Model <span onclick="closeWindow('busWindow')">×</span></div>
-  <div class="window-content">
-    <label>Značka autobusu:</label>
-    <select id="busBrand">
-      <option value="SOR">SOR</option>
-      <option value="IVECO/Irisbus/Karosa">IVECO/Irisbus/Karosa</option>
-      <option value="Solaris">Solaris</option>
-      <option value="ISUZU">ISUZU</option>
-      <option value="Renault/Irisbus">Renault/Irisbus</option>
-      <option value="Škoda">Škoda</option>
-      <option value="Ikarus">Ikarus</option>
-    </select>
-    <label>Model:</label>
-    <select id="busModel"></select>
-    <button onclick="saveBus()">Uložit</button>
-  </div>
-</div>
-
-<!-- Jízdenky -->
-<div class="window" id="ticketWindow">
-  <div class="window-header">Prodej jízdenek <span onclick="closeWindow('ticketWindow')">×</span></div>
-  <div class="window-content">
-    <label>Typ jízdenky:</label>
-    <select id="ticketType">
-      <option value="zdarma">Zdarma</option>
-      <option value="6-15">6–15 let</option>
-      <option value="15+">15+ let</option>
-      <option value="65+">65+ let</option>
-      <option value="ZTP">Osoba ZTP</option>
-      <option value="zavazadlo">Zavazadlo 3+kg</option>
-      <option value="pes">Pes</option>
-      <option value="ep">Dobití EP</option>
-    </select>
-    <label>Platba:</label>
-    <select id="paymentType">
-      <option value="BCK">BČK</option>
-      <option value="EP">EP</option>
-      <option value="Hotovost">Hotovost</option>
-    </select>
-    <button onclick="sellTicket()">Prodat</button>
-    <pre id="ticketLog" style="background:#222;color:#0f0;padding:8px;max-height:150px;overflow:auto;"></pre>
-  </div>
-</div>
-
-<!-- Panel zastávek -->
-<div class="window" id="panelWindow">
-  <div class="window-header">Panel zastávek <span onclick="closeWindow('panelWindow')">×</span></div>
-  <div class="window-content">
-    <label>Vlastní zastávky (formát: Zastávka - HH:MM - *)</label>
-    <textarea id="stopsInput" placeholder="Napiš vlastní zastávky" style="width:100%;height:80px;background:#222;color:#eee;border:1px solid #555;border-radius:4px"></textarea>
-    <ul id="stopsList"></ul>
-    <button id="prevStop">Předchozí</button>
-    <button id="nextStop">Další</button>
-    <button id="playGong">Gong</button>
-    <audio id="gong" src="https://www.prazsketramvaje.cz/zvuky/praha-zastavky/ostatni/gong.mp3"></audio>
-  </div>
-</div>
+<audio id="gong" src="https://www.prazsketramvaje.cz/zvuky/praha-zastavky/ostatni/gong.mp3"></audio>
 
 <script>
-// --- Okna ---
-function openWindow(id){document.getElementById(id).style.display="block";}
-function closeWindow(id){document.getElementById(id).style.display="none";}
-
-// --- Dopravce ---
-function saveDP(){
-  const dp=document.getElementById('dpSelect').value;
-  const linka=document.getElementById('linka').value;
-  const spoj=document.getElementById('spoj').value;
-  localStorage.setItem('synergyDP', JSON.stringify({dp, linka, spoj}));
-  alert("Dopravce, linka a spoj uloženy!");
+// ===== CLOCK =====
+function updateClock(){
+  const d=new Date();
+  document.getElementById("clock").innerText=
+    d.getHours().toString().padStart(2,"0")+":"+
+    d.getMinutes().toString().padStart(2,"0")+":"+
+    d.getSeconds().toString().padStart(2,"0");
 }
+setInterval(updateClock,1000);
 
-// --- Autobusy ---
-const busModels={
-  "SOR":["BN 8.5","BNG 12","NB 12","NB 18","NS 12","NS 18","EBN 8","EBN 9.5","EBN 10.5","C 9.5","C 12","CN 8.5","CN 9.5","CN 10.5","CN 12","LH 9.5","LH 10.5","LH 12"],
-  "IVECO/Irisbus/Karosa":["Karosa B 731","B 732","B 741","B 831","B 932","C 734","C 935","C 954","LC 735","LC 937","LC 956","Iveco Urbanway 10.5M","Iveco Urbanway 12M","Iveco Crossway","Irisbus Citelis 12M","Citelis 18M","Irisbus Crossway LE"],
-  "Solaris":["Urbino 8.6","Urbino 10","Urbino 12","Urbino 15","Urbino 18","Urbino 24"],
-  "ISUZU":["NovoCiti","Novo Ultra"],
-  "Renault/Irisbus":["Irisbus Agora","Irisbus Citelis/Citybus","Irisbus Crossway","Irisbus Arway/ Récréo"],
-  "Škoda":["33Tr SOR","Škoda-Solaris 24M"],
-  "Ikarus":["Ikarus 280","Ikarus 415","Ikarus EAG"]
-};
-const brandSelect=document.getElementById("busBrand");
-const modelSelect=document.getElementById("busModel");
-function updateModels(){
-  const models=busModels[brandSelect.value];
-  modelSelect.innerHTML="";
-  models.forEach(m=>{const o=document.createElement("option");o.value=m;o.textContent=m;modelSelect.appendChild(o);});
-}
-brandSelect.addEventListener("change",updateModels);
-updateModels();
-function saveBus(){
-  const busBrand=brandSelect.value;
-  const busModel=modelSelect.value;
-  localStorage.setItem("synergyBus", JSON.stringify({busBrand,busModel}));
-  alert("Autobus uložen!");
-}
+// ===== DATA =====
+let stops=[],index=0;
+let animating=false;
 
-// --- Jízdenky ---
-function sellTicket(){
-  const ticket=document.getElementById("ticketType").value;
-  const payment=document.getElementById("paymentType").value;
-  const log=document.getElementById("ticketLog");
-  const record=`${new Date().toLocaleTimeString()} | ${ticket} | ${payment}\n`;
-  log.textContent+=record;
-  alert("Jízdenka prodána!");
-}
+// ===== LOAD LINE =====
+function loadLine(){
+  const line=document.getElementById("lineSelect").value;
+  const trip=document.getElementById("tripInput").value.trim();
+  const linesData=document.getElementById("inputStops").value.split("\n");
 
-// --- Panel zastávek ---
-let stops=[];
-let index=0;
-const list=document.getElementById("stopsList");
+  if(!line || !trip){
+    alert("Vyber linku a zadej spoj!");
+    return;
+  }
 
-function renderStops(){
-  list.innerHTML="";
-  stops.forEach((s,i)=>{
-    const li=document.createElement("li");
-    li.textContent=`${s.name} - ${s.time} ${s.sign || ''}`;
-    if(s.delay>0){li.style.color=s.delay<5?"yellow":s.delay<10?"orange":"red";}
-    else if(s.delay<0) li.style.color="green";
-    list.appendChild(li);
-  });
-}
-
-document.getElementById("stopsInput").addEventListener("change",()=>{
-  const lines=document.getElementById("stopsInput").value.split("\n");
   stops=[];
-  lines.forEach(l=>{
-    if(l.trim()==='') return;
+  linesData.forEach(l=>{
+    if(!l.trim()) return;
     const parts=l.split("-");
-    const name=parts[0].trim();
-    const time=parts[1]?.trim()||"";
-    const sign=parts[2]?.trim()||"";
-    stops.push({name,time,sign,delay:0});
+    stops.push({
+      name:parts[0].trim(),
+      time:parts[1]?.trim() || "00:00",
+      delay: Math.floor(Math.random()*11)-5 // simulace -5 až +5 min
+    });
   });
   index=0;
-  renderStops();
-});
+  render(true);
+}
 
-document.getElementById("nextStop").addEventListener("click",()=>{
-  if(index<stops.length-1) index++;
-  alert("Další zastávka: "+stops[index].name);
-});
-document.getElementById("prevStop").addEventListener("click",()=>{
-  if(index>0) index--;
-  alert("Předchozí zastávka: "+stops[index].name);
-});
-document.getElementById("playGong").addEventListener("click",()=>{
-  if(stops[index]) alert("Zastávka: "+stops[index].name);
+// ===== RENDER =====
+function render(animateTransition=false){
+  if(!stops[index]) return;
+
+  const curDiv=document.getElementById("currentStop");
+  const nextDiv=document.getElementById("nextStops");
+  const delayBox=document.getElementById("delayBox");
+
+  if(animateTransition){
+    curDiv.style.transform="translateY(-50px)";
+    curDiv.style.opacity="0";
+    setTimeout(()=>{
+      curDiv.innerText=stops[index].name + " (" + stops[index].time + ")";
+      curDiv.style.transform="translateY(0px)";
+      curDiv.style.opacity="1";
+    },200);
+  } else {
+    curDiv.innerText=stops[index].name + " (" + stops[index].time + ")";
+  }
+
+  let nextHTML="";
+  for(let i=index+1;i<stops.length;i++){
+    nextHTML+=stops[i].name+" ("+stops[i].time+")<br>";
+  }
+  nextDiv.innerHTML=nextHTML;
+
+  // zpoždění
+  const d=stops[index].delay;
+  delayBox.innerText="Zpoždění: "+(d>=0?"+":"")+d+" min";
+  delayBox.className="delay";
+  if(d<0) delayBox.classList.add("green");
+  else if(d<=2) delayBox.classList.add("yellow");
+  else if(d<=5) delayBox.classList.add("orange");
+  else delayBox.classList.add("red");
+}
+
+// ===== POSUN =====
+function nextStop(){
+  if(index<stops.length-1){
+    index++;
+    render(true);
+  }
+}
+function prevStop(){
+  if(index>0){
+    index--;
+    render(true);
+  }
+}
+
+// ===== HLÁŠENÍ =====
+function playAnnouncement(){
+  const stop=stops[index];
+  if(!stop) return;
+
   const g=document.getElementById("gong");
-  g.currentTime=0; g.play();
-});
+  g.currentTime=0;
+  g.play();
+
+  setTimeout(()=>{
+    const msg=new SpeechSynthesisUtterance("Příští zastávka " + stop.name);
+    msg.lang="cs-CZ";
+    msg.pitch=1.2;
+    msg.rate=0.9;
+    speechSynthesis.speak(msg);
+  },800);
+}
+
 </script>
 </body>
 </html>
