@@ -3,22 +3,23 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Synergy MHD 2D</title>
+<title>Synergy MHD 2D - Eventy & Cheat</title>
 <style>
-body{margin:0;font-family:sans-serif;transition:0.3s;background:#eef3f9}
-header{background:#05204a;color:#fff;padding:12px;display:flex;align-items:center}
-#hamburger{font-size:26px;cursor:pointer;margin-right:12px}h1{font-size:18px}
+body{margin:0;font-family:sans-serif;background:#eef3f9;}
+header{background:#05204a;color:#fff;padding:12px;display:flex;align-items:center;z-index:5;position:relative;}
+#hamburger{font-size:26px;cursor:pointer;margin-right:12px}
+h1{font-size:18px;margin:0}
 #time{margin-left:auto;font-size:16px}
-nav{position:fixed;left:-280px;top:0;width:280px;height:100vh;background:#08306b;color:#fff;transition:left 0.3s;overflow:auto;padding-top:50px}
+nav{position:fixed;left:-280px;top:0;width:280px;height:100vh;background:#08306b;color:#fff;transition:left 0.3s;overflow:auto;padding-top:50px;z-index:10;}
 nav.open{left:0}
 nav a{display:block;padding:12px;color:#fff;text-decoration:none;border-bottom:1px solid #0a3a87}
 nav a:hover{background:#0a3a87}
-main{padding:16px;position:relative}
+main{padding:16px;position:relative;z-index:1;}
 button,input,select{width:100%;margin:6px 0;padding:8px;font-size:15px;border:1px solid #ccc;border-radius:4px}
 button{background:#05204a;color:#fff;cursor:pointer}
 button:hover{background:#0a3a87}
 #log,#cmdLog,#announceLog,#auditLog{background:#eee;padding:8px;border-radius:4px;max-height:150px;overflow:auto;margin-bottom:10px}
-canvas{background:#a3d0f0;width:100%;height:200px;border:1px solid #ccc;border-radius:4px}
+canvas{background:#a3d0f0;width:100%;height:200px;border:1px solid #ccc;border-radius:4px;display:block;}
 </style>
 </head>
 <body class="day">
@@ -121,9 +122,7 @@ function updateTime(){
     const d=new Date();
     document.getElementById('time').textContent=`Den ${day}, Týden ${week}, ${month}/${year} ${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`;
 }
-setInterval(()=>{
-    updateTime();
-},1000);
+setInterval(updateTime,1000);
 
 // === Gong ===
 function playGong(){document.getElementById("gong").play(); audit("Gong přehrán");}
@@ -196,14 +195,21 @@ function startLine(){
 }
 
 // === Náhodné eventy ===
-function randomEvent(){
-    let rnd=Math.random(); let txt="";
-    if(rnd<0.2){txt="⚡ Vypadla elektřina!"; money-=10;}
-    else if(rnd<0.35){txt="⛽ Plyn není ve vozovně!"; money-=15;}
-    else if(rnd<0.55){txt="👥 Příliš mnoho cestujících, více peněz!"; money+=Math.floor(Math.random()*20+10);}
-    else if(rnd<0.75){txt="🌧 Špatné počasí zpomaluje linku."; stopIndex=Math.max(stopIndex-1,0);}
-    else {txt="☀ Slunečný den, více cestujících!"; money+=Math.floor(Math.random()*15+5);}
-    announce(txt); updateMoney();
+const eventy=[
+    {txt:"⚡ Vypadla elektřina!",money:-10},
+    {txt:"⛽ Plyn není ve vozovně!",money:-15},
+    {txt:"👥 Příliš mnoho cestujících, více peněz!",money:Math.floor(Math.random()*20+10)},
+    {txt:"🌧 Špatné počasí zpomaluje linku.",money:0,slow:true},
+    {txt:"☀ Slunečný den, více cestujících!",money:Math.floor(Math.random()*15+5)}
+];
+
+function randomEvent(index=null){
+    let e=index!==null?eventy[index]:eventy[Math.floor(Math.random()*eventy.length)];
+    announce(e.txt);
+    if(e.money) money+=e.money;
+    if(e.slow) stopIndex=Math.max(stopIndex-1,0);
+    updateMoney();
+    audit("Event: "+e.txt);
 }
 
 // Eventy každých 10s (1 herní týden = 10s demo)
@@ -215,6 +221,11 @@ document.getElementById("cmdBtn").addEventListener("click",()=>{
   let log=document.getElementById("cmdLog");
   if(code==="726262"){money+=626226;log.textContent="Peníze přidány!";audit("Cheat: +626226 €");}
   else if(code==="Djau71792!"){infinite=true;money=999999;log.textContent="Infinity money";audit("Cheat: infinity");}
+  else if(code.startsWith("event")){ // např. event0, event3
+    let idx=parseInt(code.replace("event",""));
+    if(!isNaN(idx)&&idx>=0&&idx<eventy.length){randomEvent(idx); log.textContent="Vybraný event spuštěn"; audit("Cheat: Event "+idx);}
+    else{log.textContent="Neplatný event cheat";}
+  }
   else if(code==="721772727272)2)2)/):€:):):€::)"){log.textContent="Admin aktivní";audit("Admin aktivní");}
   else{log.textContent="Neplatný kód";}
   updateMoney();
