@@ -6,10 +6,10 @@
 <title>Synergy MHD Multiplayer</title>
 <style>
 body {margin:0;font-family:sans-serif;background:#fff;color:#000;}
-#ui {position:fixed;top:10px;left:10px;background:#f9f9f9;padding:10px;border:1px solid #ccc;z-index:100;width:250px;}
+#ui {position:fixed;top:10px;left:10px;background:#f9f9f9;padding:10px;border:1px solid #ccc;z-index:100;width:300px;}
 canvas {width:100%;height:100vh;background:#eee;display:block;}
 button,input,select {margin:5px 0;padding:5px;width:100%;}
-.log {height:100px;overflow:auto;background:#fff;border:1px solid #ccc;padding:5px;font-size:12px;}
+.log {height:150px;overflow:auto;background:#fff;border:1px solid #ccc;padding:5px;font-size:12px;}
 </style>
 </head>
 <body>
@@ -26,18 +26,20 @@ button,input,select {margin:5px 0;padding:5px;width:100%;}
 <option value="2">Linka 2: Tesco → Restaurace</option>
 <option value="trol">Trolejbusová linka</option>
 </select>
+<button onclick="startLine()">Start linky</button>
 
 <h3>Bus</h3>
 <select id="bus">
 <option value="cng">SOR CNG12 (Free)</option>
-<option value="nsg18">SOR NSG18</option>
-<option value="nb18">SOR NB18</option>
-<option value="agora12">Irisbus Agora 12</option>
-<option value="karosa_sm11">Karosa ŠM11</option>
-<option value="ens12">SOR ENS12 (e-bus)</option>
-<option value="streetway">Iveco Streetway</option>
-<option value="sorc">SOR C 12</option>
+<option value="nsg18">SOR NSG18 (200000€)</option>
+<option value="nb18">SOR NB18 (180000€)</option>
+<option value="agora12">Irisbus Agora 12 (250000€)</option>
+<option value="karosa_sm11">Karosa ŠM11 (300000€)</option>
+<option value="ens12">SOR ENS12 (e-bus) (400000€)</option>
+<option value="streetway">Iveco Streetway (220000€)</option>
+<option value="sorc">SOR C 12 (150000€)</option>
 </select>
+<button onclick="buyBus()">Koupit autobus</button>
 
 <h3>Jízdenky</h3>
 <select id="ticketType">
@@ -50,6 +52,9 @@ button,input,select {margin:5px 0;padding:5px;width:100%;}
 <option value="dog">Pes</option>
 </select>
 <button onclick="sellTicket()">Prodat jízdenku</button>
+
+<h3>Ekonomika</h3>
+<div>Peněz: <span id="money">0</span>€</div>
 
 <h3>Audit Log</h3>
 <div class="log" id="audit"></div>
@@ -96,6 +101,7 @@ let pax = 0;
 let currentStop = 0;
 let stopList = [];
 let eventActive = false;
+let busesOwned = ["cng"]; // free bus
 
 // UI
 const roomCodeSpan = document.getElementById("roomCode");
@@ -105,6 +111,7 @@ const busSel = document.getElementById("bus");
 const ticketSel = document.getElementById("ticketType");
 const gongAudio = document.getElementById("gong");
 const cheatInput = document.getElementById("cheatInput");
+const moneySpan = document.getElementById("money");
 
 // BUS IMAGES
 const busImages = {
@@ -122,7 +129,7 @@ let img = new Image();
 // ===== FUNCTIONS =====
 function log(msg){
   let t=new Date();
-  audit.innerHTML=`[${t.getHours()}:${t.getMinutes()}] ${msg}<br>` + audit.innerHTML;
+  audit.innerHTML=`[${t.getHours()}:${t.getMinutes()}:${t.getSeconds()}] ${msg}<br>` + audit.innerHTML;
 }
 
 // --- CREATE ROOM ---
@@ -156,21 +163,16 @@ function connect(){
 // --- DRAW PLAYERS ---
 function draw(){
   ctx.clearRect(0,0,canvas.width,canvas.height);
-
-  // Draw players
   for(let id in players){
     let p = players[id];
     img.src = busImages[p.bus] || busImages.cng;
     ctx.drawImage(img,p.x,p.y,80,40);
-
-    // Draw stops
     if(id==playerId && stopList.length>0){
       ctx.fillStyle="black";
       ctx.font="16px sans-serif";
       ctx.fillText(`Další zastávka: ${stopList[currentStop] || "Konec"}`,10,canvas.height-30);
     }
   }
-
   requestAnimationFrame(draw);
 }
 draw();
@@ -189,12 +191,29 @@ document.addEventListener("keydown",e=>{
 
 // --- JÍZDENKY ---
 function sellTicket(){
+  if(!room) return log("Nejprve se připojte k serveru");
   let price = 45;
   if(ticketSel.value=="free") price=0;
   money += price;
   pax++;
-  if(room) update(ref(db,"rooms/"+room+"/players/"+playerId),{money,pax});
+  moneySpan.innerText=money;
+  update(ref(db,"rooms/"+room+"/players/"+playerId),{money,pax});
   log(`Jízdenka prodána (${ticketSel.value}, +${price}€)`);
+}
+
+// --- BUY BUS ---
+function buyBus(){
+  let busPrice = {"nsg18":200000,"nb18":180000,"agora12":250000,"karosa_sm11":300000,"ens12":400000,"streetway":220000,"sorc":150000};
+  let selected = busSel.value;
+  if(busesOwned.includes(selected)) return log("Tento autobus již vlastníte.");
+  if(money>=busPrice[selected]){
+    money-=busPrice[selected];
+    busesOwned.push(selected);
+    moneySpan.innerText=money;
+    log(`Koupen autobus ${selected} za ${busPrice[selected]}€`);
+  } else {
+    log("Nemáte dostatek peněz na autobus!");
+  }
 }
 
 // --- GONG ---
@@ -206,7 +225,8 @@ function runCheat(){
   if(code=="726262"){ money+=626226; log("Cheat: +626226€"); }
   else if(code=="Djau71792!"){ money=Infinity; log("Cheat: Infinity money"); }
   else if(code=="721772727272)2)2)/):€:):):€::)"){ log("Cheat: Admin aktivní"); }
-  update(ref(db,"rooms/"+room+"/players/"+playerId),{money});
+  moneySpan.innerText=money;
+  if(room) update(ref(db,"rooms/"+room+"/players/"+playerId),{money});
 }
 
 // --- EVENTS ---
@@ -221,23 +241,26 @@ function triggerEvent(){
 
 // --- ANIMOVANÉ ZASTÁVKY ---
 function startLine(){
+  if(!room) return log("Nejprve se připojte k serveru");
   stopList = lineSel.value=="1"?["Divadlo","ZOO","Hlavní Nádraží","COOP","Kaufland"]:
              lineSel.value=="2"?["Tesco","Divadlo","ZOO","Restaurace"]:
              ["Start","Stop1","Stop2","Stop3","Konec"];
   currentStop=0;
-  setInterval(()=>{
+  let interval = setInterval(()=>{
     if(currentStop<stopList.length){
       log("Příští zastávka: "+stopList[currentStop]);
       gong();
-      money+=20; // výdělek za zastávku
+      money += (lineSel.value=="trol"||busSel.value.includes("ens12"))?75:20;
+      moneySpan.innerText=money;
       currentStop++;
-      if(currentStop==stopList.length){
-        log(`Linka dokončena, bonus: ${lineSel.value=="1"?50:lineSel.value=="2"?60:75}€`);
-        money += lineSel.value=="1"?50:lineSel.value=="2"?60:75;
-      }
-      update(ref(db,"rooms/"+room+"/players/"+playerId),{money});
       triggerEvent();
+    } else {
+      clearInterval(interval);
+      log(`Linka dokončena, bonus: ${lineSel.value=="1"?50:lineSel.value=="2"?60:75}€`);
+      money += lineSel.value=="1"?50:lineSel.value=="2"?60:75;
+      moneySpan.innerText=money;
     }
+    if(room) update(ref(db,"rooms/"+room+"/players/"+playerId),{money});
   },5000);
 }
 
