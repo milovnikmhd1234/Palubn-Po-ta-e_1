@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Synergy MHD Multiplayer - Animovaný autobus</title>
+<title>Synergy MHD Multiplayer - Opravené</title>
 <style>
 body {margin:0;font-family:sans-serif;background:#fff;color:#000;}
 #sidebar {
@@ -138,7 +138,13 @@ let img=new Image();
 // ===== FUNCTIONS =====
 function log(msg){
   let t=new Date();
-  audit.innerHTML=`[${t.getHours()}:${t.getMinutes()}:${t.getSeconds()}] ${msg}<br>`+audit.innerHTML;
+  let entry=`[${t.getHours()}:${t.getMinutes()}:${t.getSeconds()}] ${msg}`;
+  audit.innerHTML=entry+"<br>"+audit.innerHTML;
+  // Firebase audit log
+  if(room){
+    let logRef=ref(db,"rooms/"+room+"/audit");
+    update(logRef,{[Date.now()]:entry});
+  }
 }
 
 // CREATE ROOM
@@ -153,6 +159,7 @@ function createRoom(){
 // JOIN ROOM
 function joinRoom(){
   room=prompt("Zadej kód serveru:");
+  if(!room) return;
   roomCodeSpan.innerText=room;
   connect();
   log("Připojeno k serveru "+room);
@@ -166,6 +173,13 @@ function connect(){
 
   onValue(ref(db,"rooms/"+room+"/players"),snap=>{
     players=snap.val()||{};
+  });
+
+  // Listen audit log
+  onValue(ref(db,"rooms/"+room+"/audit"),snap=>{
+    let logs=snap.val()||{};
+    audit.innerHTML="";
+    Object.values(logs).reverse().forEach(l=>{audit.innerHTML+=l+"<br>";});
   });
 }
 
@@ -204,7 +218,7 @@ function sellTicket(){
   money+=price;
   pax++;
   moneySpan.innerText=money;
-  update(ref(db,"rooms/"+room+"/players/"+playerId),{money,pax});
+  if(room) update(ref(db,"rooms/"+room+"/players/"+playerId),{money,pax});
   log(`Jízdenka prodána (${ticketSel.value}, +${price}€)`);
 }
 
@@ -217,6 +231,7 @@ function buyBus(){
     money-=busPrice[selected];
     busesOwned.push(selected);
     moneySpan.innerText=money;
+    if(room) update(ref(db,"rooms/"+room+"/players/"+playerId),{money});
     log(`Koupen autobus ${selected} za ${busPrice[selected]}€`);
   } else {log("Nemáte dostatek peněz na autobus!");}
 }
@@ -256,17 +271,19 @@ function startLine(){
       log("Příští zastávka: "+stopList[currentStop]);
       gong();
       // Přidání peněz
-      money += (lineSel.value=="trol"||busSel.value.includes("ens12"))?75:20;
+      let earn=(lineSel.value=="trol"||busSel.value.includes("ens12"))?75:20;
+      money += earn;
       moneySpan.innerText=money;
+      if(room) update(ref(db,"rooms/"+room+"/players/"+playerId),{money});
       currentStop++;
       triggerEvent();
-      if(room) update(ref(db,"rooms/"+room+"/players/"+playerId),{money});
     } else {
       clearInterval(interval);
-      log(`Linka dokončena, bonus: ${lineSel.value=="1"?50:lineSel.value=="2"?60:75}€`);
-      money += lineSel.value=="1"?50:lineSel.value=="2"?60:75;
+      let bonus=lineSel.value=="1"?50:lineSel.value=="2"?60:75;
+      money+=bonus;
       moneySpan.innerText=money;
       if(room) update(ref(db,"rooms/"+room+"/players/"+playerId),{money});
+      log(`Linka dokončena, bonus: ${bonus}€`);
     }
   },4000);
 }
