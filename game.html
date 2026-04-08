@@ -3,28 +3,23 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Synergy MHD Multiplayer - Opravené</title>
+<title>Synergy MHD 2D Multiplayer</title>
 <style>
-body {margin:0;font-family:sans-serif;background:#fff;color:#000;}
+body { margin:0; font-family:sans-serif; background:#fff; color:#000; }
 #sidebar {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 300px;
-  height: 100vh;
-  background:#f0f0f0;
-  border-right:1px solid #ccc;
-  padding:10px;
-  overflow-y:auto;
+  position: fixed; top:0; left:0; width:320px; height:100vh;
+  background:#f0f0f0; border-right:1px solid #ccc; padding:10px; overflow-y:auto;
 }
-canvas {margin-left:300px; background:#eee; display:block;}
-button,input,select {margin:5px 0;padding:5px;width:100%;}
-.log {height:150px;overflow:auto;background:#fff;border:1px solid #ccc;padding:5px;font-size:12px;}
+canvas { margin-left:320px; background:#d0e7f9; display:block; }
+button,input,select { margin:5px 0; padding:5px; width:100%; }
+.log { height:180px; overflow:auto; background:#fff; border:1px solid #ccc; padding:5px; font-size:12px; }
 </style>
 </head>
 <body>
 
 <div id="sidebar">
+<h2>Synergy MHD</h2>
+
 <h3>Server</h3>
 <button onclick="createRoom()">Vytvořit server</button>
 <button onclick="joinRoom()">Připojit se</button>
@@ -72,6 +67,9 @@ button,input,select {margin:5px 0;padding:5px;width:100%;}
 <h3>Cheat</h3>
 <input id="cheatInput" placeholder="Zadej cheat kód">
 <button onclick="runCheat()">Použít cheat</button>
+
+<h3>Bonusy / Eventy</h3>
+<button onclick="triggerEvent()">Spustit náhodný event</button>
 </div>
 
 <canvas id="c"></canvas>
@@ -80,7 +78,7 @@ button,input,select {margin:5px 0;padding:5px;width:100%;}
 <script type="module">
 // ===== FIREBASE =====
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getDatabase, ref, set, onValue, update, onDisconnect } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+import { getDatabase, ref, set, update, onValue, onDisconnect } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyD5h2CHXSyMgsV8CdL1PnoEPRXvjz2VnYs",
@@ -92,26 +90,24 @@ const firebaseConfig = {
   appId: "1:967929240906:web:d675c04bd2cd577e75b5b3",
   measurementId: "G-8QKX8JC3YM"
 };
-
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-// ===== VARIABLES =====
-let canvas = document.getElementById("c");
-let ctx = canvas.getContext("2d");
-canvas.width = window.innerWidth - 300;
-canvas.height = window.innerHeight;
+// ===== GLOBAL VARIABLES =====
+let canvas=document.getElementById("c");
+let ctx=canvas.getContext("2d");
+canvas.width=window.innerWidth-320;
+canvas.height=window.innerHeight;
 
-let playerId = Math.random().toString(36).substr(2,9);
-let room = "";
-let players = {};
+let playerId=Math.random().toString(36).substr(2,9);
+let room="";
+let players={};
 let x=100,y=200;
-let money=0;
-let pax=0;
+let money=0,pax=0;
 let currentStop=0;
 let stopList=[];
 let eventActive=false;
-let busesOwned=["cng"]; // free bus
+let busesOwned=["cng"];
 
 const roomCodeSpan=document.getElementById("roomCode");
 const audit=document.getElementById("audit");
@@ -140,14 +136,13 @@ function log(msg){
   let t=new Date();
   let entry=`[${t.getHours()}:${t.getMinutes()}:${t.getSeconds()}] ${msg}`;
   audit.innerHTML=entry+"<br>"+audit.innerHTML;
-  // Firebase audit log
   if(room){
     let logRef=ref(db,"rooms/"+room+"/audit");
     update(logRef,{[Date.now()]:entry});
   }
 }
 
-// CREATE ROOM
+// --- ROOM ---
 function createRoom(){
   room=Math.random().toString(36).substr(2,5);
   roomCodeSpan.innerText=room;
@@ -155,8 +150,6 @@ function createRoom(){
   connect();
   log("Server vytvořen, čekám na hráče...");
 }
-
-// JOIN ROOM
 function joinRoom(){
   room=prompt("Zadej kód serveru:");
   if(!room) return;
@@ -165,17 +158,14 @@ function joinRoom(){
   log("Připojeno k serveru "+room);
 }
 
-// CONNECT
+// --- CONNECT ---
 function connect(){
   const playerRef=ref(db,"rooms/"+room+"/players/"+playerId);
   set(playerRef,{x,y,money,pax,bus:busSel.value,currentStop:0,line:lineSel.value});
   onDisconnect(playerRef).remove();
-
   onValue(ref(db,"rooms/"+room+"/players"),snap=>{
     players=snap.val()||{};
   });
-
-  // Listen audit log
   onValue(ref(db,"rooms/"+room+"/audit"),snap=>{
     let logs=snap.val()||{};
     audit.innerHTML="";
@@ -183,14 +173,13 @@ function connect(){
   });
 }
 
-// DRAW PLAYERS
+// --- DRAW ---
 function draw(){
   ctx.clearRect(0,0,canvas.width,canvas.height);
   for(let id in players){
     let p=players[id];
     img.src=busImages[p.bus]||busImages.cng;
     ctx.drawImage(img,p.x,p.y,80,40);
-    // Next stop info above bus
     if(id==playerId && stopList.length>0){
       ctx.fillStyle="black";
       ctx.font="16px sans-serif";
@@ -200,93 +189,110 @@ function draw(){
   requestAnimationFrame(draw);
 }
 draw();
+ // ===== STOPS & ANIMATION =====
+const lines = {
+  "1": ["Divadlo","ZOO","Hlavní Nádraží","COOP","Kaufland"],
+  "2": ["Tesco","Divadlo","ZOO","Restaurace"],
+  "trol": ["Elektrárna","Náměstí","Hlavní Nádraží","Depo"]
+};
 
-// MOVE PLAYER
+function startLine(){
+  let selected=lineSel.value;
+  if(!busesOwned.includes(busSel.value)){
+    alert("Musíš mít zakoupený autobus!");
+    return;
+  }
+  stopList=lines[selected].slice();
+  currentStop=0;
+  log(`Linka ${selected} spuštěna s autobusem ${busSel.value}`);
+  moveBus();
+}
+
+function moveBus(){
+  if(currentStop>=stopList.length){
+    log("Linka dokončena!");
+    let reward=(lineSel.value=="1"?50:(lineSel.value=="2"?60:75));
+    money+=reward;
+    moneySpan.innerText=money;
+    return;
+  }
+  gongAudio.play();
+  log(`Příjezd na zastávku: ${stopList[currentStop]}`);
+  money+=20; // za každou zastávku
+  moneySpan.innerText=money;
+  currentStop++;
+  setTimeout(moveBus,5000); // 5 sekund mezi zastávkami
+}
+
+// ===== TICKETS =====
+function sellTicket(){
+  let type=ticketSel.value;
+  if(type=="free") { log("Prodána zdarma jízdenka"); return; }
+  money+=45;
+  moneySpan.innerText=money;
+  log(`Prodána jízdenka typu ${type} (+45€)`);
+}
+
+// ===== BUY BUS =====
+function buyBus(){
+  let b=busSel.value;
+  const prices={
+    nsg18:200000, nb18:180000, agora12:250000, karosa_sm11:300000,
+    ens12:400000, streetway:220000, sorc:150000
+  };
+  if(busesOwned.includes(b)){
+    alert("Tento autobus již vlastníš");
+    return;
+  }
+  let price=prices[b];
+  if(money<price){ alert("Nemáš dost peněz!"); return; }
+  money-=price;
+  moneySpan.innerText=money;
+  busesOwned.push(b);
+  log(`Zakoupen autobus ${b} za ${price}€`);
+}
+
+// ===== EVENTS =====
+const events=[
+  {name:"Vypadla elektřina",bonus:-30},
+  {name:"Plyn není ve vozovně",bonus:-20},
+  {name:"Příliš mnoho cestujících",bonus:-10},
+  {name:"Špatné počasí",bonus:-25},
+  {name:"Bonus: dobrá reklama",bonus:+40}
+];
+
+function triggerEvent(){
+  let e=events[Math.floor(Math.random()*events.length)];
+  money+=e.bonus;
+  moneySpan.innerText=money;
+  log(`Event: ${e.name} (${e.bonus>=0?"+":"")}${e.bonus}€)`);
+}
+
+// ===== CHEATS =====
+function runCheat(){
+  let c=cheatInput.value.trim();
+  if(c=="726262"){ money+=626226; log("Cheat: +626226€") }
+  else if(c=="Djau71792!"){ money=Infinity; log("Cheat: Infinity money") }
+  else if(c=="721772727272)2)2)/):€:):):€::)"){ log("Cheat: Admin mode aktivní") }
+  else if(c=="event"){ triggerEvent(); log("Cheat: náhodný event spuštěn") }
+  moneySpan.innerText=money;
+  cheatInput.value="";
+}
+
+// ===== MULTIPLAYER SYNC =====
+setInterval(()=>{
+  if(!room) return;
+  let playerRef=ref(db,"rooms/"+room+"/players/"+playerId);
+  update(playerRef,{x,y,money,pax,bus:busSel.value,currentStop,line:lineSel.value});
+},1000);
+
+// ===== KEYBOARD CONTROLS =====
 document.addEventListener("keydown",e=>{
   if(e.key=="ArrowRight") x+=10;
   if(e.key=="ArrowLeft") x-=10;
-  if(e.key=="ArrowUp") y-=10;
-  if(e.key=="ArrowDown") y+=10;
-  if(room) update(ref(db,"rooms/"+room+"/players/"+playerId),{x,y});
+  if(e.key=="ArrowUp") y-=5;
+  if(e.key=="ArrowDown") y+=5;
 });
 
-// JÍZDENKY
-function sellTicket(){
-  if(!room) return log("Nejprve se připojte k serveru");
-  let price=45;
-  if(ticketSel.value=="free") price=0;
-  money+=price;
-  pax++;
-  moneySpan.innerText=money;
-  if(room) update(ref(db,"rooms/"+room+"/players/"+playerId),{money,pax});
-  log(`Jízdenka prodána (${ticketSel.value}, +${price}€)`);
-}
-
-// BUY BUS
-function buyBus(){
-  let busPrice={"nsg18":200000,"nb18":180000,"agora12":250000,"karosa_sm11":300000,"ens12":400000,"streetway":220000,"sorc":150000};
-  let selected=busSel.value;
-  if(busesOwned.includes(selected)) return log("Tento autobus již vlastníte.");
-  if(money>=busPrice[selected]){
-    money-=busPrice[selected];
-    busesOwned.push(selected);
-    moneySpan.innerText=money;
-    if(room) update(ref(db,"rooms/"+room+"/players/"+playerId),{money});
-    log(`Koupen autobus ${selected} za ${busPrice[selected]}€`);
-  } else {log("Nemáte dostatek peněz na autobus!");}
-}
-
-// GONG
-function gong(){gongAudio.play();}
-
-// CHEAT
-function runCheat(){
-  let code=cheatInput.value;
-  if(code=="726262"){ money+=626226; log("Cheat: +626226€"); }
-  else if(code=="Djau71792!"){ money=Infinity; log("Cheat: Infinity money"); }
-  else if(code=="721772727272)2)2)/):€:):):€::)"){ log("Cheat: Admin aktivní"); }
-  moneySpan.innerText=money;
-  if(room) update(ref(db,"rooms/"+room+"/players/"+playerId),{money});
-}
-
-// EVENTS
-function triggerEvent(){
-  if(eventActive) return;
-  let events=["Vypadla elektřina","Plyn není ve vozovně","Příliš mnoho cestujících","Špatné počasí"];
-  let e=events[Math.floor(Math.random()*events.length)];
-  log("Event: "+e);
-  eventActive=true;
-  setTimeout(()=>{eventActive=false},10000);
-}
-
-// ANIMOVANÉ ZASTÁVKY
-function startLine(){
-  if(!room) return log("Nejprve se připojte k serveru");
-  stopList=lineSel.value=="1"?["Divadlo","ZOO","Hlavní Nádraží","COOP","Kaufland"]:
-           lineSel.value=="2"?["Tesco","Divadlo","ZOO","Restaurace"]:
-           ["Start","Stop1","Stop2","Stop3","Konec"];
-  currentStop=0;
-  let interval=setInterval(()=>{
-    if(currentStop<stopList.length){
-      log("Příští zastávka: "+stopList[currentStop]);
-      gong();
-      // Přidání peněz
-      let earn=(lineSel.value=="trol"||busSel.value.includes("ens12"))?75:20;
-      money += earn;
-      moneySpan.innerText=money;
-      if(room) update(ref(db,"rooms/"+room+"/players/"+playerId),{money});
-      currentStop++;
-      triggerEvent();
-    } else {
-      clearInterval(interval);
-      let bonus=lineSel.value=="1"?50:lineSel.value=="2"?60:75;
-      money+=bonus;
-      moneySpan.innerText=money;
-      if(room) update(ref(db,"rooms/"+room+"/players/"+playerId),{money});
-      log(`Linka dokončena, bonus: ${bonus}€`);
-    }
-  },4000);
-}
-</script>
-</body>
-</html>
+// ===== RESIZE =====
+window.addEventListener("resize",()=>{canvas.width=window.innerWidth-320; canvas.height=window.innerHeight;}); 
