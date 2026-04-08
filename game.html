@@ -3,186 +3,183 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Synergy 2D Palubní PC</title>
+<title>Synergy 2D MAX – Hra</title>
 <style>
-body { margin:0; font-family:sans-serif; background:#1b1b2f; color:#fff; overflow-x:hidden; }
-header { background:#05204a; padding:12px; display:flex; align-items:center; position:fixed; width:100%; z-index:1000; }
-#hamburger { font-size:26px; cursor:pointer; margin-right:12px; }
-h1 { font-size:18px; margin:0; }
-#time { margin-left:auto; font-size:16px; }
-nav { position:fixed; left:-320px; top:0; width:320px; height:100vh; background:#08306b; color:#fff; transition:left 0.3s; overflow:auto; padding-top:50px; z-index:999; }
-nav.open { left:0; }
-nav a { display:block; padding:12px; color:#fff; text-decoration:none; border-bottom:1px solid #0a3a87; cursor:pointer; }
-nav a:hover { background:#0a3a87; }
-main { padding:70px 16px 16px 16px; }
-.sidebar-section { margin-bottom:20px; border-bottom:1px solid #0a3a87; padding-bottom:10px; }
-.sidebar-section h2 { font-size:16px; margin:10px 0; }
-button { background:#05204a; color:#fff; cursor:pointer; border:none; padding:8px; border-radius:4px; margin-top:4px; width:100%; }
-button:hover { background:#0a3a87; }
-select, input { width:100%; padding:6px; margin:4px 0; border-radius:4px; border:1px solid #ccc; }
-#map { position:relative; width:100%; height:300px; background:#0a1b2c; border-radius:8px; margin-bottom:16px; overflow:hidden; }
-.bus { position:absolute; width:60px; height:30px; top:50%; transform:translateY(-50%); transition:left 1s linear; border-radius:4px; display:flex; align-items:center; justify-content:center; font-size:12px; color:#fff; }
-.stop { position:absolute; width:80px; height:25px; background:#0a3a87; border-radius:4px; text-align:center; font-size:12px; line-height:25px; }
-#announcement { background:#05204a; padding:8px; border-radius:4px; margin-bottom:8px; }
-#economy { background:#0a1b2c; padding:8px; border-radius:4px; margin-bottom:16px; }
+body{margin:0;font-family:sans-serif;background:#1b1b2f;color:#fff;overflow:hidden;}
+header{background:#05204a;padding:10px;display:flex;align-items:center;}
+#hamburger{cursor:pointer;font-size:24px;margin-right:10px;}
+#sidebar{position:fixed;left:-320px;top:0;width:320px;height:100%;background:#08306b;transition:0.3s;padding:50px 10px;}
+#sidebar.open{left:0;}
+#sidebar select,#sidebar button,#sidebar input{width:90%;margin:5px;padding:5px;}
+#map{position:relative;width:100%;height:400px;background:#0a1b2c;overflow:hidden;}
+.bus{position:absolute;width:60px;height:30px;background:red;color:#fff;text-align:center;line-height:30px;border-radius:4px;}
+.passenger{position:absolute;width:15px;height:15px;background:yellow;border-radius:50%;}
+#eco,#calendar{padding:10px;background:#111;}
+body.day{background:#87ceeb;}
+body.night{background:#0a1b2c;}
 </style>
 </head>
-<body>
+<body class="day">
 
 <header>
-  <div id="hamburger">☰</div>
-  <h1>Synergy 2D PC</h1>
-  <div id="time"></div>
+<span id="hamburger">☰</span>
+<h2>Synergy 2D MAX</h2>
 </header>
 
-<nav id="sidebar">
-  <a id="closeNav">Zavřít menu</a>
-  
-  <div class="sidebar-section">
-    <h2>Výběr linky</h2>
-    <select id="lineSelect">
-      <option value="">-- Vyber linku --</option>
-      <option value="1">1: Divadlo, ZOO, Hlavní Nádraží, COOP, Kaufland</option>
-      <option value="2">2: Tesco, Divadlo, ZOO, Restaurace</option>
-      <option value="serv">Služební jízda</option>
-    </select>
-  </div>
-  
-  <div class="sidebar-section">
-    <h2>Výběr autobusu</h2>
-    <select id="busSelect">
-      <option value="">-- Vyber autobus --</option>
-      <option value="SOR CNG12|0">SOR CNG12 (Free)</option>
-      <option value="SOR BN 8.5|20000">SOR BN 8.5 (€20,000)</option>
-      <option value="SOR BNG 12|25000">SOR BNG 12 (€25,000)</option>
-      <option value="Solaris Urbino 12|35000">Solaris Urbino 12 (€35,000)</option>
-      <option value="Iveco Urbanway 12M|40000">Iveco Urbanway 12M (€40,000)</option>
-      <option value="Karosa B 732|30000">Karosa B 732 (€30,000)</option>
-      <option value="Karosa ŠM11|70000">Karosa ŠM11 (€70,000)</option>
-      <option value="Isuzu NovoCiti|22000">Isuzu NovoCiti (€22,000)</option>
-      <option value="Renault Irisbus Citelis|38000">Renault Irisbus Citelis (€38,000)</option>
-      <option value="Škoda 33Tr SOR|45000">Škoda 33Tr SOR (€45,000)</option>
-    </select>
-  </div>
-  
-  <div class="sidebar-section">
-    <h2>Jízdenky</h2>
-    <button onclick="sellTicket('free')">Prodat jízdenku zdarma</button>
-    <button onclick="sellTicket('6-15')">6-15 let</button>
-    <button onclick="sellTicket('15+')">15+ / 65+</button>
-    <button onclick="sellTicket('ZTP')">Osoba ZTP</button>
-    <button onclick="sellTicket('zavazadlo')">Zavazadlo 3+kg</button>
-    <button onclick="sellTicket('pes')">Pes</button>
-  </div>
-  
-  <div class="sidebar-section">
-    <h2>Admin</h2>
-    <button onclick="adminLogin()">Přihlásit admin</button>
-  </div>
-</nav>
+<div id="sidebar">
+<h3>Linka</h3>
+<select id="line">
+<option value="">Vyber linku</option>
+<option value="1">1: Divadlo → Kaufland</option>
+<option value="2">2: Tesco → Restaurace</option>
+<option value="3">3 ⚡ Trolejbus</option>
+</select>
 
-<main>
-  <div id="announcement">Vítej! Vyber linku a autobus.</div>
-  <div id="map"></div>
-  <div id="economy">Saldo: €0</div>
-</main>
+<h3>Autobus</h3>
+<select id="bus">
+<option value="">Vyber autobus</option>
+<option value="SOR CNG12|0|cng">SOR CNG12 (Free)</option>
+<option value="SOR ENS12|50000|electric">SOR ENS12 (€50k)</option>
+<option value="Karosa ŠM11|70000|diesel">Karosa ŠM11 (€70k)</option>
+<option value="Solaris Urbino 12|35000|diesel">Solaris Urbino 12 (€35k)</option>
+<option value="Iveco Streetway|40000|diesel">Iveco Streetway (€40k)</option>
+</select>
+
+<button onclick="start()">Start výjezdu</button>
+
+<h3>Cheaty / Admin</h3>
+<input id="cmd" placeholder="Zadej kód">
+<button onclick="runCmd()">Spustit</button>
+
+<h3>Přehled</h3>
+<div id="eco">€0</div>
+<div id="calendar">Týden: 1 | Den: 1 | Měsíc: 1 | Rok: 2026</div>
+</div>
+
+<div id="map"></div>
 
 <audio id="gong" src="https://www.prazsketramvaje.cz/zvuky/praha-zastavky/ostatni/gong.mp3"></audio>
 
 <script>
-// Sidebar
-const hamburger = document.getElementById('hamburger');
-const sidebar = document.getElementById('sidebar');
-const closeNav = document.getElementById('closeNav');
-hamburger.addEventListener('click',()=>{sidebar.classList.add('open');});
-closeNav.addEventListener('click',()=>{sidebar.classList.remove('open');});
+// --- Stav hry ---
+let money=0;
+let infinite=false;
+let admin=false;
+let owned=["SOR CNG12"];
+let week=1, day=1, month=1, year=2026;
+let busEl=document.createElement("div");
+let passengers=[];
+let stops=[], stopIndex=0;
+let fuelType="diesel";
+let gameInterval=null;
 
-// Hodiny
-function updateTime(){
-  const d=new Date();
-  const h=d.getHours(), m=d.getMinutes(), s=d.getSeconds();
-  document.getElementById('time').textContent=`${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
-}
-setInterval(updateTime,1000);
-updateTime();
+busEl.className="bus";
+document.getElementById("map").appendChild(busEl);
 
-// Ekonomika
-let balance=0;
-let ownedBuses=['SOR CNG12'];
-function addMoney(amount){ balance+=amount; document.getElementById('economy').textContent=`Saldo: €${balance}`; }
+// --- Sidebar toggle ---
+document.getElementById("hamburger").onclick=()=>{document.getElementById("sidebar").classList.toggle("open");}
 
-// Bus + zastávky
-let busEl=document.createElement('div');
-busEl.className='bus';
-busEl.textContent='';
-document.getElementById('map').appendChild(busEl);
-
-let stops=[];
-let currentStop=0;
-let lineSelected='', busSelected='';
-function startLine(){
-  const busData=document.getElementById('busSelect').value;
-  if(!busData || !document.getElementById('lineSelect').value){ alert('Vyber linku i autobus!'); return; }
-  const [busName, busPrice]=busData.split('|');
-  busSelected=busName;
-  const price=parseInt(busPrice);
-  if(busSelected!=='SOR CNG12' && !ownedBuses.includes(busSelected)){
-    if(balance<price){ alert('Nemáš dostatek € na koupi tohoto autobusu!'); return; }
-    balance-=price; addMoney(0);
-    ownedBuses.push(busSelected);
-    alert(`Zakoupen autobus ${busSelected} za €${price}`);
-  }
-
-  // Zastávky podle linky
-  lineSelected=document.getElementById('lineSelect').value;
-  if(lineSelected=='1') stops=['Divadlo','ZOO','Hlavní Nádraží','COOP','Kaufland'];
-  if(lineSelected=='2') stops=['Tesco','Divadlo','ZOO','Restaurace'];
-  if(lineSelected=='serv') stops=['Servisní zastávka 1','Servisní zastávka 2'];
-
-  currentStop=0;
-  busEl.style.left='0px';
-  busEl.textContent=busSelected;
-  announceNext();
-  animateBus();
+// --- Cheat příkazový řádek ---
+function runCmd(){
+let c=document.getElementById("cmd").value;
+if(c==="726262"){money+=626226;}
+if(c==="Djau71792!"){infinite=true;}
+if(c==="721772727272)2)2)/):€:):):€::)"){admin=true;alert("ADMIN MODE")}
+updateMoney();
 }
 
-function animateBus(){
-  if(currentStop>=stops.length) return;
-  const mapWidth=document.getElementById('map').offsetWidth;
-  const pos=(currentStop/(stops.length-1))*(mapWidth-60);
-  busEl.style.left=pos+'px';
-  setTimeout(()=>{
-    announceNext();
-    addMoney(20);
-    currentStop++;
-    setTimeout(animateBus,1000);
-  },2000);
+// --- Start výjezdu ---
+function start(){
+let line=document.getElementById("line").value;
+let busData=document.getElementById("bus").value;
+if(!line||!busData){alert("Vyber linku i autobus");return;}
+let [name,price,type]=busData.split("|");
+if(!owned.includes(name)){
+if(money<price && !infinite){alert("Nemáš prachy");return;}
+money-=price; owned.push(name);
+}
+fuelType=type;
+
+// Definice zastávek
+if(line=="1") stops=["Divadlo","ZOO","Hlavní Nádraží","COOP","Kaufland"];
+if(line=="2") stops=["Tesco","Divadlo","ZOO","Restaurace"];
+if(line=="3") stops=["Depo","Náměstí","Nemocnice","Sídliště"];
+
+stopIndex=0;
+busEl.innerText=name;
+move();
 }
 
-function announceNext(){
-  let nextStop=stops[currentStop]||'Konec linky';
-  let nextNext=stops[currentStop+1]||'-';
-  document.getElementById('announcement').textContent=`Aktuální: ${nextStop}, Příští: ${nextNext}`;
-  document.getElementById('gong').play();
+// --- Pohyb autobusu ---
+function move(){
+if(stopIndex>=stops.length){stopIndex=0;clearPassengers();return;}
+busEl.style.left=(stopIndex*80)+"px";
+updatePassengers();
+
+let current=stops[stopIndex];
+let next=stops[stopIndex+1]||"konec";
+
+// Hlášení
+speechSynthesis.speak(new SpeechSynthesisUtterance("Zastávka "+current+". Příští "+next));
+document.getElementById("gong").play();
+
+// Peníze
+if(!infinite){
+let psg=Math.floor(Math.random()*10+1);
+money+=psg*45;
+if(fuelType==="diesel") money-=5;
+if(fuelType==="cng") money-=3;
+if(fuelType==="electric") money-=2;
 }
 
-// Jízdenky
-function sellTicket(type){
-  let price=45;
-  if(type==='free'){ price=0; }
-  addMoney(price);
-  alert(`Prodána jízdenka: ${type} (€${price})`);
+// Bonus linka
+if(stopIndex===stops.length-1){
+if(stops.includes("Kaufland")) money+=50;
+if(stops.includes("Restaurace")) money+=60;
+}
+updateMoney();
+stopIndex++;
+setTimeout(move,2000);
 }
 
-// Admin
-function adminLogin(){
-  let pass=prompt('Zadej admin heslo');
-  if(pass==='K3508O'){ alert('Admin přihlášen!'); } else { alert('Špatné heslo'); }
+// --- Passengers ---
+function updatePassengers(){
+clearPassengers();
+let psgNum=Math.floor(Math.random()*5+1);
+for(let i=0;i<psgNum;i++){
+let p=document.createElement("div");
+p.className="passenger";
+p.style.left=(stopIndex*80+Math.random()*50)+"px";
+p.style.top=(200+Math.random()*50)+"px";
+document.getElementById("map").appendChild(p);
+passengers.push(p);
+}
 }
 
-// Spuštění linky po změně
-document.getElementById('lineSelect').addEventListener('change', startLine);
-document.getElementById('busSelect').addEventListener('change', startLine);
+function clearPassengers(){
+passengers.forEach(p=>p.remove());
+passengers=[];
+}
+
+// --- Peníze ---
+function updateMoney(){document.getElementById("eco").innerText="€"+money;}
+
+// --- Herní kalendář ---
+function tickWeek(){
+week++; day++; if(day>7){day=1; month++;}
+if(month>12){month=1; year++;}
+document.getElementById("calendar").innerText=`Týden: ${week} | Den: ${day} | Měsíc: ${month} | Rok: ${year}`;
+
+// Odečítání nákladů
+if(!infinite){money-=10;} // provozní náklady
+updateMoney();
+
+// Den/Noc
+if(day>=6){document.body.className="night";} else {document.body.className="day";}
+}
+
+// --- Hra timer (10 min / týden) ---
+gameInterval=setInterval(tickWeek, 10*1000); // pro demo zkráceno na 10s = 1 týden
 </script>
 
 </body>
