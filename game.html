@@ -3,240 +3,243 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Synergy MHD 2D - Eventy & Cheat</title>
+<title>Synergy MHD Multiplayer</title>
 <style>
-body{margin:0;font-family:sans-serif;background:#eef3f9;}
-header{background:#05204a;color:#fff;padding:12px;display:flex;align-items:center;z-index:5;position:relative;}
-#hamburger{font-size:26px;cursor:pointer;margin-right:12px}
-h1{font-size:18px;margin:0}
-#time{margin-left:auto;font-size:16px}
-nav{position:fixed;left:-280px;top:0;width:280px;height:100vh;background:#08306b;color:#fff;transition:left 0.3s;overflow:auto;padding-top:50px;z-index:10;}
-nav.open{left:0}
-nav a{display:block;padding:12px;color:#fff;text-decoration:none;border-bottom:1px solid #0a3a87}
-nav a:hover{background:#0a3a87}
-main{padding:16px;position:relative;z-index:1;}
-button,input,select{width:100%;margin:6px 0;padding:8px;font-size:15px;border:1px solid #ccc;border-radius:4px}
-button{background:#05204a;color:#fff;cursor:pointer}
-button:hover{background:#0a3a87}
-#log,#cmdLog,#announceLog,#auditLog{background:#eee;padding:8px;border-radius:4px;max-height:150px;overflow:auto;margin-bottom:10px}
-canvas{background:#a3d0f0;width:100%;height:200px;border:1px solid #ccc;border-radius:4px;display:block;}
+body {margin:0;font-family:sans-serif;background:#fff;color:#000;}
+#ui {position:fixed;top:10px;left:10px;background:#f9f9f9;padding:10px;border:1px solid #ccc;z-index:100;width:250px;}
+canvas {width:100%;height:100vh;background:#eee;display:block;}
+button,input,select {margin:5px 0;padding:5px;width:100%;}
+.log {height:100px;overflow:auto;background:#fff;border:1px solid #ccc;padding:5px;font-size:12px;}
 </style>
 </head>
-<body class="day">
+<body>
 
-<header>
-<span id="hamburger">☰</span>
-<h1>Synergy MHD 2D</h1>
-<div id="time"></div>
-</header>
+<div id="ui">
+<h3>Server</h3>
+<button onclick="createRoom()">Vytvořit server</button>
+<button onclick="joinRoom()">Připojit</button>
+<div>Kód: <span id="roomCode">-</span></div>
 
-<nav id="sidebar">
-<a href="#" id="closeNav">Zavřít menu</a>
-
-<div class="sidebar-section">
-<h3>Výběr linky</h3>
-<select id="lineSelect">
-<option value="">-- Vyber linku --</option>
-<option value="line1">Služební jízda</option>
-<option value="line2">1: Divadlo,ZOO,Hlavní Nádraží,COOP,Kaufland</option>
-<option value="line3">2: Tesco,Divadlo,ZOO,Restaurace</option>
-<option value="lineTrol">Trolejbusová linka (e-bus)</option>
+<h3>Linka</h3>
+<select id="line">
+<option value="1">Linka 1: Divadlo → Kaufland</option>
+<option value="2">Linka 2: Tesco → Restaurace</option>
+<option value="trol">Trolejbusová linka</option>
 </select>
-</div>
 
-<div class="sidebar-section">
-<h3>Výběr autobusu</h3>
-<select id="busSelect">
-<option value="">-- Vyber autobus --</option>
-<option value="SOR_CNG12">SOR CNG12 (Free)</option>
-<option value="SOR_NS18">SOR NS 18 (€16000)</option>
-<option value="SOR_NB18">SOR NB 18 (€15000)</option>
-<option value="Solaris_Urbino12">Solaris Urbino 12 (€14000)</option>
-<option value="Solaris_Urbino18">Solaris Urbino 18 (€18000)</option>
-<option value="Karosa_SM11">Karosa ŠM11 (€22000)</option>
-<option value="Iveco_Urbanway12">Iveco Urbanway 12 (€15000)</option>
-<option value="Irisbus_Citelis12">Irisbus Citelis 12 (€14500)</option>
-<option value="Isuzu_NovoCiti">Isuzu NovoCiti (€13000)</option>
-<option value="Skoda_33TrSOR">Škoda 33Tr SOR (€20000)</option>
-<option value="SOR_ENS12">SOR ENS12 (E-bus, €18000)</option>
+<h3>Bus</h3>
+<select id="bus">
+<option value="cng">SOR CNG12 (Free)</option>
+<option value="nsg18">SOR NSG18</option>
+<option value="nb18">SOR NB18</option>
+<option value="agora12">Irisbus Agora 12</option>
+<option value="karosa_sm11">Karosa ŠM11</option>
+<option value="ens12">SOR ENS12 (e-bus)</option>
+<option value="streetway">Iveco Streetway</option>
+<option value="sorc">SOR C 12</option>
 </select>
+
+<h3>Jízdenky</h3>
+<select id="ticketType">
+<option value="normal">Normal (45€)</option>
+<option value="free">Zdarma</option>
+<option value="child">6-15</option>
+<option value="adult">15+</option>
+<option value="ztp">ZTP</option>
+<option value="luggage">Zavazadlo 3+kg</option>
+<option value="dog">Pes</option>
+</select>
+<button onclick="sellTicket()">Prodat jízdenku</button>
+
+<h3>Audit Log</h3>
+<div class="log" id="audit"></div>
+
+<h3>Cheat</h3>
+<input id="cheatInput" placeholder="Zadej cheat kód">
+<button onclick="runCheat()">Použít cheat</button>
 </div>
 
-<div class="sidebar-section">
-<h3>Admin</h3>
-<input type="password" id="adminPass" placeholder="Heslo admin">
-<button id="adminLogin">Přihlásit</button>
-</div>
-
-<div class="sidebar-section">
-<h3>Příkazový řádek</h3>
-<input type="text" id="cmdInput" placeholder="Zadej kód">
-<button id="cmdBtn">Spustit</button>
-<pre id="cmdLog"></pre>
-</div>
-
-<div class="sidebar-section">
-<h3>Hlásení</h3>
-<pre id="announceLog"></pre>
-</div>
-
-<div class="sidebar-section">
-<h3>Audit log</h3>
-<pre id="auditLog"></pre>
-</div>
-
-<div class="sidebar-section">
-<h3>Ekonomika</h3>
-<div>Peněženka: <span id="money">0</span>€</div>
-</div>
-
-</nav>
-
-<main>
-<h2>Mapa linky</h2>
-<canvas id="mapCanvas"></canvas>
-<h2>Jízdní řád</h2>
-<div id="stopsLog"></div>
-<h2>Hra</h2>
-<button id="startBtn">Vyjet</button>
-<button onclick="playGong()">Gong</button>
-</main>
-
+<canvas id="c"></canvas>
 <audio id="gong" src="https://www.prazsketramvaje.cz/zvuky/praha-zastavky/ostatni/gong.mp3"></audio>
 
-<script>
-// === Sidebar ===
-const hamburger=document.getElementById('hamburger'),
-      sidebar=document.getElementById('sidebar'),
-      closeNav=document.getElementById('closeNav');
-hamburger.addEventListener('click',()=>{sidebar.classList.add('open');});
-closeNav.addEventListener('click',()=>{sidebar.classList.remove('open');});
+<script type="module">
+// ===== FIREBASE CONFIG =====
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getDatabase, ref, set, onValue, update, onDisconnect } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
-// === Čas a kalendář ===
-let money=0, bus="", line="", stops=[], stopIndex=0, week=1, day=1, month=1, year=2026, infinite=false;
-const stopyLine1=["Služební start","Cíl"]; 
-const stopyLine2=["Divadlo","ZOO","Hlavní Nádraží","COOP","Kaufland"];
-const stopyLine3=["Tesco","Divadlo","ZOO","Restaurace"];
-const stopyTrol=["Depo","Hlavní Nádraží","Nádraží Holešovice","Výstaviště"];
-function updateTime(){
-    const d=new Date();
-    document.getElementById('time').textContent=`Den ${day}, Týden ${week}, ${month}/${year} ${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`;
+const firebaseConfig = {
+  apiKey: "AIzaSyD5h2CHXSyMgsV8CdL1PnoEPRXvjz2VnYs",
+  authDomain: "onlinegame1-154f9.firebaseapp.com",
+  databaseURL: "https://onlinegame1-154f9-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "onlinegame1-154f9",
+  storageBucket: "onlinegame1-154f9.appspot.com",
+  messagingSenderId: "967929240906",
+  appId: "1:967929240906:web:d675c04bd2cd577e75b5b3",
+  measurementId: "G-8QKX8JC3YM"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+// ===== VARIABLES =====
+let canvas = document.getElementById("c");
+let ctx = canvas.getContext("2d");
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+let playerId = Math.random().toString(36).substr(2, 9);
+let room = "";
+let players = {};
+let x = 100, y = 200;
+let money = 0;
+let pax = 0;
+let currentStop = 0;
+let stopList = [];
+let eventActive = false;
+
+// UI
+const roomCodeSpan = document.getElementById("roomCode");
+const audit = document.getElementById("audit");
+const lineSel = document.getElementById("line");
+const busSel = document.getElementById("bus");
+const ticketSel = document.getElementById("ticketType");
+const gongAudio = document.getElementById("gong");
+const cheatInput = document.getElementById("cheatInput");
+
+// BUS IMAGES
+const busImages = {
+  cng:"https://upload.wikimedia.org/wikipedia/commons/3/3e/SOR_CN12.jpg",
+  nsg18:"https://upload.wikimedia.org/wikipedia/commons/5/5f/SOR_NSG18.jpg",
+  nb18:"https://upload.wikimedia.org/wikipedia/commons/2/21/SOR_NB18.jpg",
+  agora12:"https://upload.wikimedia.org/wikipedia/commons/1/1b/Irisbus_Agora_12.jpg",
+  karosa_sm11:"https://upload.wikimedia.org/wikipedia/commons/2/2b/Karosa.jpg",
+  ens12:"https://upload.wikimedia.org/wikipedia/commons/5/5a/SOR_ENS12.jpg",
+  streetway:"https://upload.wikimedia.org/wikipedia/commons/0/02/Iveco_Streetway.jpg",
+  sorc:"https://upload.wikimedia.org/wikipedia/commons/3/3f/SOR_C12.jpg"
+};
+let img = new Image();
+
+// ===== FUNCTIONS =====
+function log(msg){
+  let t=new Date();
+  audit.innerHTML=`[${t.getHours()}:${t.getMinutes()}] ${msg}<br>` + audit.innerHTML;
 }
-setInterval(updateTime,1000);
 
-// === Gong ===
-function playGong(){document.getElementById("gong").play(); audit("Gong přehrán");}
-
-// === Audit log ===
-function audit(txt){const log=document.getElementById("auditLog"); const t=new Date(); log.textContent=`[${t.getHours()}:${t.getMinutes()}:${t.getSeconds()}] ${txt}\n`+log.textContent;}
-
-// === Ekonomika ===
-function updateMoney(){document.getElementById("money").textContent=money;}
-
-// === Hlásič ===
-function announce(txt){const log=document.getElementById("announceLog"); log.textContent=txt+"\n"+log.textContent; audit("Hlásič: "+txt);}
-
-// === Start linky ===
-const canvas=document.getElementById("mapCanvas");
-const ctx=canvas.getContext("2d");
-canvas.width=canvas.clientWidth; canvas.height=canvas.clientHeight;
-
-let busPosX=50, busPosY=150, busSpeed=2, animating=false;
-
-function drawMap(){
-    ctx.clearRect(0,0,canvas.width,canvas.height);
-    if(!stops) return;
-    const gap=canvas.width/(stops.length+1);
-    ctx.fillStyle="#333";
-    stops.forEach((s,i)=>{
-        ctx.beginPath();
-        ctx.arc(gap*(i+1),50,10,0,Math.PI*2);
-        ctx.fill();
-        ctx.fillStyle="#000";
-        ctx.fillText(s,gap*(i+1)-ctx.measureText(s).width/2,80);
-        ctx.fillStyle="#333";
-    });
-    // Autobus/trolejbus
-    ctx.fillStyle=(line==="lineTrol")?"#00ccff":"#ff0000";
-    ctx.fillRect(busPosX,busPosY,30,15);
+// --- CREATE ROOM ---
+function createRoom(){
+  room = Math.random().toString(36).substr(2,5);
+  roomCodeSpan.innerText = room;
+  set(ref(db,"rooms/"+room),{});
+  connect();
+  log("Server vytvořen, čekám na hráče...");
 }
 
-function animateBus(){
-    if(stopIndex>=stops.length){announce("Linka dokončena!"); animating=false; return;}
-    animating=true;
-    const gap=canvas.width/(stops.length+1);
-    const targetX=gap*(stopIndex+1);
-    if(busPosX<targetX){
-        busPosX+=busSpeed;
-        drawMap();
-        requestAnimationFrame(animateBus);
-    } else {
-        busPosX=targetX;
-        drawMap();
-        announce("Další zastávka: "+stops[stopIndex]);
-        money+=(line==="lineTrol"?75:20); updateMoney();
-        stopIndex++;
-        setTimeout(animateBus,2000);
+// --- JOIN ROOM ---
+function joinRoom(){
+  room = prompt("Zadej kód:");
+  roomCodeSpan.innerText = room;
+  connect();
+  log("Připojeno k serveru "+room);
+}
+
+// --- CONNECT ---
+function connect(){
+  const playerRef = ref(db,"rooms/"+room+"/players/"+playerId);
+  set(playerRef,{x,y,money,pax,bus:busSel.value,currentStop:0,line:lineSel.value});
+  onDisconnect(playerRef).remove();
+
+  onValue(ref(db,"rooms/"+room+"/players"),snap=>{
+    players = snap.val() || {};
+  });
+}
+
+// --- DRAW PLAYERS ---
+function draw(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  // Draw players
+  for(let id in players){
+    let p = players[id];
+    img.src = busImages[p.bus] || busImages.cng;
+    ctx.drawImage(img,p.x,p.y,80,40);
+
+    // Draw stops
+    if(id==playerId && stopList.length>0){
+      ctx.fillStyle="black";
+      ctx.font="16px sans-serif";
+      ctx.fillText(`Další zastávka: ${stopList[currentStop] || "Konec"}`,10,canvas.height-30);
     }
-}
-
-function startLine(){
-    bus=document.getElementById("busSelect").value;
-    line=document.getElementById("lineSelect").value;
-    if(!bus||!line){alert("Vyber linku i autobus!"); return;}
-    if(line==="line1"){stops=stopyLine1;}
-    else if(line==="line2"){stops=stopyLine2;}
-    else if(line==="line3"){stops=stopyLine3;}
-    else if(line==="lineTrol"){stops=stopyTrol;}
-    stopIndex=0; busPosX=50;
-    announce(`Vyjíždíte na linku ${line} autobusem ${bus}`);
-    audit(`Start linky ${line}, bus: ${bus}`);
-    animateBus();
-}
-
-// === Náhodné eventy ===
-const eventy=[
-    {txt:"⚡ Vypadla elektřina!",money:-10},
-    {txt:"⛽ Plyn není ve vozovně!",money:-15},
-    {txt:"👥 Příliš mnoho cestujících, více peněz!",money:Math.floor(Math.random()*20+10)},
-    {txt:"🌧 Špatné počasí zpomaluje linku.",money:0,slow:true},
-    {txt:"☀ Slunečný den, více cestujících!",money:Math.floor(Math.random()*15+5)}
-];
-
-function randomEvent(index=null){
-    let e=index!==null?eventy[index]:eventy[Math.floor(Math.random()*eventy.length)];
-    announce(e.txt);
-    if(e.money) money+=e.money;
-    if(e.slow) stopIndex=Math.max(stopIndex-1,0);
-    updateMoney();
-    audit("Event: "+e.txt);
-}
-
-// Eventy každých 10s (1 herní týden = 10s demo)
-setInterval(()=>{randomEvent(); week++; if(week>52){week=1; year++; audit("Nový herní týden");}},10000);
-
-// === Příkazový řádek ===
-document.getElementById("cmdBtn").addEventListener("click",()=>{
-  let code=document.getElementById("cmdInput").value;
-  let log=document.getElementById("cmdLog");
-  if(code==="726262"){money+=626226;log.textContent="Peníze přidány!";audit("Cheat: +626226 €");}
-  else if(code==="Djau71792!"){infinite=true;money=999999;log.textContent="Infinity money";audit("Cheat: infinity");}
-  else if(code.startsWith("event")){ // např. event0, event3
-    let idx=parseInt(code.replace("event",""));
-    if(!isNaN(idx)&&idx>=0&&idx<eventy.length){randomEvent(idx); log.textContent="Vybraný event spuštěn"; audit("Cheat: Event "+idx);}
-    else{log.textContent="Neplatný event cheat";}
   }
-  else if(code==="721772727272)2)2)/):€:):):€::)"){log.textContent="Admin aktivní";audit("Admin aktivní");}
-  else{log.textContent="Neplatný kód";}
-  updateMoney();
+
+  requestAnimationFrame(draw);
+}
+draw();
+
+// --- MOVE PLAYER ---
+document.addEventListener("keydown",e=>{
+  if(e.key=="ArrowRight") x+=10;
+  if(e.key=="ArrowLeft") x-=10;
+  if(e.key=="ArrowUp") y-=10;
+  if(e.key=="ArrowDown") y+=10;
+
+  if(room){
+    update(ref(db,"rooms/"+room+"/players/"+playerId),{x,y});
+  }
 });
 
-// === Start tlačítko ===
-document.getElementById("startBtn").addEventListener("click",()=>{startLine();});
+// --- JÍZDENKY ---
+function sellTicket(){
+  let price = 45;
+  if(ticketSel.value=="free") price=0;
+  money += price;
+  pax++;
+  if(room) update(ref(db,"rooms/"+room+"/players/"+playerId),{money,pax});
+  log(`Jízdenka prodána (${ticketSel.value}, +${price}€)`);
+}
 
-// === Sidebar zavření ===
-document.getElementById("closeNav").addEventListener("click",()=>{sidebar.classList.remove('open');});
-document.getElementById("hamburger").addEventListener("click",()=>{sidebar.classList.add('open');});
+// --- GONG ---
+function gong(){gongAudio.play();}
+
+// --- CHEAT ---
+function runCheat(){
+  let code = cheatInput.value;
+  if(code=="726262"){ money+=626226; log("Cheat: +626226€"); }
+  else if(code=="Djau71792!"){ money=Infinity; log("Cheat: Infinity money"); }
+  else if(code=="721772727272)2)2)/):€:):):€::)"){ log("Cheat: Admin aktivní"); }
+  update(ref(db,"rooms/"+room+"/players/"+playerId),{money});
+}
+
+// --- EVENTS ---
+function triggerEvent(){
+  if(eventActive) return;
+  let events=["Vypadla elektřina","Plyn není ve vozovně","Příliš mnoho cestujících","Špatné počasí"];
+  let e = events[Math.floor(Math.random()*events.length)];
+  log("Event: "+e);
+  eventActive=true;
+  setTimeout(()=>{eventActive=false},10000);
+}
+
+// --- ANIMOVANÉ ZASTÁVKY ---
+function startLine(){
+  stopList = lineSel.value=="1"?["Divadlo","ZOO","Hlavní Nádraží","COOP","Kaufland"]:
+             lineSel.value=="2"?["Tesco","Divadlo","ZOO","Restaurace"]:
+             ["Start","Stop1","Stop2","Stop3","Konec"];
+  currentStop=0;
+  setInterval(()=>{
+    if(currentStop<stopList.length){
+      log("Příští zastávka: "+stopList[currentStop]);
+      gong();
+      money+=20; // výdělek za zastávku
+      currentStop++;
+      if(currentStop==stopList.length){
+        log(`Linka dokončena, bonus: ${lineSel.value=="1"?50:lineSel.value=="2"?60:75}€`);
+        money += lineSel.value=="1"?50:lineSel.value=="2"?60:75;
+      }
+      update(ref(db,"rooms/"+room+"/players/"+playerId),{money});
+      triggerEvent();
+    }
+  },5000);
+}
 
 </script>
 </body>
