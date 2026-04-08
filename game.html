@@ -5,34 +5,25 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Synergy 2D Palubní PC</title>
 <style>
-/* --- Globální styl --- */
 body { margin:0; font-family:sans-serif; background:#1b1b2f; color:#fff; overflow-x:hidden; }
 header { background:#05204a; padding:12px; display:flex; align-items:center; position:fixed; width:100%; z-index:1000; }
 #hamburger { font-size:26px; cursor:pointer; margin-right:12px; }
 h1 { font-size:18px; margin:0; }
 #time { margin-left:auto; font-size:16px; }
-nav { position:fixed; left:-300px; top:0; width:300px; height:100vh; background:#08306b; color:#fff; transition:left 0.3s; overflow:auto; padding-top:50px; z-index:999; }
+nav { position:fixed; left:-320px; top:0; width:320px; height:100vh; background:#08306b; color:#fff; transition:left 0.3s; overflow:auto; padding-top:50px; z-index:999; }
 nav.open { left:0; }
 nav a { display:block; padding:12px; color:#fff; text-decoration:none; border-bottom:1px solid #0a3a87; cursor:pointer; }
 nav a:hover { background:#0a3a87; }
 main { padding:70px 16px 16px 16px; }
-
-/* --- Sidebar prvky --- */
 .sidebar-section { margin-bottom:20px; border-bottom:1px solid #0a3a87; padding-bottom:10px; }
 .sidebar-section h2 { font-size:16px; margin:10px 0; }
 button { background:#05204a; color:#fff; cursor:pointer; border:none; padding:8px; border-radius:4px; margin-top:4px; width:100%; }
 button:hover { background:#0a3a87; }
 select, input { width:100%; padding:6px; margin:4px 0; border-radius:4px; border:1px solid #ccc; }
-
-/* --- Autobusy a zastávky --- */
 #map { position:relative; width:100%; height:300px; background:#0a1b2c; border-radius:8px; margin-bottom:16px; overflow:hidden; }
 .bus { position:absolute; width:60px; height:30px; top:50%; transform:translateY(-50%); transition:left 1s linear; border-radius:4px; display:flex; align-items:center; justify-content:center; font-size:12px; color:#fff; }
 .stop { position:absolute; width:80px; height:25px; background:#0a3a87; border-radius:4px; text-align:center; font-size:12px; line-height:25px; }
-
-/* --- Palubní hlášení --- */
 #announcement { background:#05204a; padding:8px; border-radius:4px; margin-bottom:8px; }
-
-/* --- Ekonomika --- */
 #economy { background:#0a1b2c; padding:8px; border-radius:4px; margin-bottom:16px; }
 </style>
 </head>
@@ -46,6 +37,7 @@ select, input { width:100%; padding:6px; margin:4px 0; border-radius:4px; border
 
 <nav id="sidebar">
   <a id="closeNav">Zavřít menu</a>
+  
   <div class="sidebar-section">
     <h2>Výběr linky</h2>
     <select id="lineSelect">
@@ -55,21 +47,24 @@ select, input { width:100%; padding:6px; margin:4px 0; border-radius:4px; border
       <option value="serv">Služební jízda</option>
     </select>
   </div>
+  
   <div class="sidebar-section">
     <h2>Výběr autobusu</h2>
     <select id="busSelect">
       <option value="">-- Vyber autobus --</option>
-      <option value="SOR CNG12">SOR CNG12 (free)</option>
-      <option value="SOR BN 8.5">SOR BN 8.5</option>
-      <option value="SOR BNG 12">SOR BNG 12</option>
-      <option value="Solaris Urbino 12">Solaris Urbino 12</option>
-      <option value="Iveco Urbanway 12M">Iveco Urbanway 12M</option>
-      <option value="Karosa B 732">Karosa B 732</option>
-      <option value="Isuzu NovoCiti">Isuzu NovoCiti</option>
-      <option value="Renault Irisbus Citelis">Renault Irisbus Citelis</option>
-      <option value="Škoda 33Tr SOR">Škoda 33Tr SOR</option>
+      <option value="SOR CNG12|0">SOR CNG12 (Free)</option>
+      <option value="SOR BN 8.5|20000">SOR BN 8.5 (€20,000)</option>
+      <option value="SOR BNG 12|25000">SOR BNG 12 (€25,000)</option>
+      <option value="Solaris Urbino 12|35000">Solaris Urbino 12 (€35,000)</option>
+      <option value="Iveco Urbanway 12M|40000">Iveco Urbanway 12M (€40,000)</option>
+      <option value="Karosa B 732|30000">Karosa B 732 (€30,000)</option>
+      <option value="Karosa ŠM11|70000">Karosa ŠM11 (€70,000)</option>
+      <option value="Isuzu NovoCiti|22000">Isuzu NovoCiti (€22,000)</option>
+      <option value="Renault Irisbus Citelis|38000">Renault Irisbus Citelis (€38,000)</option>
+      <option value="Škoda 33Tr SOR|45000">Škoda 33Tr SOR (€45,000)</option>
     </select>
   </div>
+  
   <div class="sidebar-section">
     <h2>Jízdenky</h2>
     <button onclick="sellTicket('free')">Prodat jízdenku zdarma</button>
@@ -79,6 +74,7 @@ select, input { width:100%; padding:6px; margin:4px 0; border-radius:4px; border
     <button onclick="sellTicket('zavazadlo')">Zavazadlo 3+kg</button>
     <button onclick="sellTicket('pes')">Pes</button>
   </div>
+  
   <div class="sidebar-section">
     <h2>Admin</h2>
     <button onclick="adminLogin()">Přihlásit admin</button>
@@ -94,15 +90,15 @@ select, input { width:100%; padding:6px; margin:4px 0; border-radius:4px; border
 <audio id="gong" src="https://www.prazsketramvaje.cz/zvuky/praha-zastavky/ostatni/gong.mp3"></audio>
 
 <script>
-// --- Sidebar ---
+// Sidebar
 const hamburger = document.getElementById('hamburger');
 const sidebar = document.getElementById('sidebar');
 const closeNav = document.getElementById('closeNav');
 hamburger.addEventListener('click',()=>{sidebar.classList.add('open');});
 closeNav.addEventListener('click',()=>{sidebar.classList.remove('open');});
 
-// --- Hodiny ---
-function updateTime() {
+// Hodiny
+function updateTime(){
   const d=new Date();
   const h=d.getHours(), m=d.getMinutes(), s=d.getSeconds();
   document.getElementById('time').textContent=`${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
@@ -110,11 +106,12 @@ function updateTime() {
 setInterval(updateTime,1000);
 updateTime();
 
-// --- Ekonomika ---
+// Ekonomika
 let balance=0;
+let ownedBuses=['SOR CNG12'];
 function addMoney(amount){ balance+=amount; document.getElementById('economy').textContent=`Saldo: €${balance}`; }
 
-// --- Bus + zastávky ---
+// Bus + zastávky
 let busEl=document.createElement('div');
 busEl.className='bus';
 busEl.textContent='';
@@ -124,15 +121,27 @@ let stops=[];
 let currentStop=0;
 let lineSelected='', busSelected='';
 function startLine(){
+  const busData=document.getElementById('busSelect').value;
+  if(!busData || !document.getElementById('lineSelect').value){ alert('Vyber linku i autobus!'); return; }
+  const [busName, busPrice]=busData.split('|');
+  busSelected=busName;
+  const price=parseInt(busPrice);
+  if(busSelected!=='SOR CNG12' && !ownedBuses.includes(busSelected)){
+    if(balance<price){ alert('Nemáš dostatek € na koupi tohoto autobusu!'); return; }
+    balance-=price; addMoney(0);
+    ownedBuses.push(busSelected);
+    alert(`Zakoupen autobus ${busSelected} za €${price}`);
+  }
+
+  // Zastávky podle linky
   lineSelected=document.getElementById('lineSelect').value;
-  busSelected=document.getElementById('busSelect').value;
-  if(!lineSelected || !busSelected){ alert('Vyber linku i autobus!'); return; }
-  // Nastav zastávky podle linky
   if(lineSelected=='1') stops=['Divadlo','ZOO','Hlavní Nádraží','COOP','Kaufland'];
   if(lineSelected=='2') stops=['Tesco','Divadlo','ZOO','Restaurace'];
   if(lineSelected=='serv') stops=['Servisní zastávka 1','Servisní zastávka 2'];
+
   currentStop=0;
   busEl.style.left='0px';
+  busEl.textContent=busSelected;
   announceNext();
   animateBus();
 }
@@ -157,7 +166,7 @@ function announceNext(){
   document.getElementById('gong').play();
 }
 
-// --- Jízdenky ---
+// Jízdenky
 function sellTicket(type){
   let price=45;
   if(type==='free'){ price=0; }
@@ -165,16 +174,16 @@ function sellTicket(type){
   alert(`Prodána jízdenka: ${type} (€${price})`);
 }
 
-// --- Admin ---
+// Admin
 function adminLogin(){
   let pass=prompt('Zadej admin heslo');
   if(pass==='K3508O'){ alert('Admin přihlášen!'); } else { alert('Špatné heslo'); }
 }
 
-// --- Spuštění linky po změně ---
+// Spuštění linky po změně
 document.getElementById('lineSelect').addEventListener('change', startLine);
 document.getElementById('busSelect').addEventListener('change', startLine);
-
 </script>
+
 </body>
 </html>
